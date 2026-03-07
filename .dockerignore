@@ -1,0 +1,41 @@
+.git
+.gitignore
+.env
+.claude/
+CLAUDE.md
+DOCUMENTATION.md
+LICENSE
+PLANS/
+
+# Runtime dirs
+cache/
+logs/
+config/config.json
+config/secrets.json
+
+# Dev/test files
+test/
+Test/
+Work/
+Library_Test/
+Drop_Shows/
+Drop_Movies/
+Trash/
+Review/
+Duplicates/
+Ambiguous/
+recovery_backup_*/
+*.bat
+test_*.py
+tmpclaude-*
+
+# Docker compose (not needed inside image)
+docker/docker-compose.yml
+docker/install.sh
+docker/uninstall.sh
+docker/README.md
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo

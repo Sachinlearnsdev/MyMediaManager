@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+{% block title %}Stats - MyMediaManager{% endblock %}
+
+{% block content %}
+<div x-data="statsApp()">
+    <div class="page-header">
+        <h2>Statistics</h2>
+        <div class="page-actions">
+            <button class="btn btn-outline btn-sm" @click="refresh()" :disabled="loading">
+                <span class="spinner" x-show="loading" x-cloak></span>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── OVERVIEW CARDS ─── -->
+    <div class="stats-overview-grid">
+        <div class="stat-card-v2">
+            <div class="stat-card-icon" style="background:rgba(59,130,246,0.12);color:var(--accent)">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-value-v2" x-text="fmt(stats.overview.library_imports)"></div>
+                <div class="stat-label-v2">Library Imports</div>
+            </div>
+        </div>
+        <div class="stat-card-v2">
+            <div class="stat-card-icon" style="background:rgba(206,147,216,0.12);color:#ce93d8">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-value-v2" x-text="fmt(stats.overview.classified)"></div>
+                <div class="stat-label-v2">Files Classified</div>
+            </div>
+        </div>
+        <div class="stat-card-v2">
+            <div class="stat-card-icon" style="background:rgba(34,197,94,0.12);color:var(--success)">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+                </svg>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-value-v2" x-text="stats.overview.success_rate + '%'"></div>
+                <div class="stat-label-v2">Success Rate</div>
+            </div>
+        </div>
+        <div class="stat-card-v2">
+            <div class="stat-card-icon" style="background:rgba(251,191,36,0.12);color:var(--warning)">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-value-v2" x-text="stats.overview.cache_hit_rate + '%'"></div>
+                <div class="stat-label-v2">Cache Hit Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── PER-PROCESSOR BREAKDOWN ─── -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Processor Breakdown</h3>
+        </div>
+        <div class="stats-processors">
+            <template x-for="proc in processorList" :key="proc.id">
+                <div class="stats-proc-row">
+                    <div class="stats-proc-header">
+                        <span class="stats-proc-badge" :style="'background:' + proc.color + '20; color:' + proc.color" x-text="proc.label"></span>
+                        <span class="stats-proc-total" x-text="fmt(stats.processors[proc.id].processed) + ' processed'"></span>
+                        <span class="stats-proc-sessions" x-text="'(' + stats.processors[proc.id].sessions + ' sessions)'"></span>
+                    </div>
+                    <div class="stats-proc-bar-container">
+                        <div class="stats-proc-bar" :style="'width:' + barWidth(proc.id) + '%; background:' + proc.color"></div>
+                    </div>
+                    <div class="stats-proc-details">
+                        <span class="stats-detail">
+                            <span class="stats-dot" style="background:var(--text-muted)"></span>
+                            <span x-text="fmt(stats.processors[proc.id].started)"></span> started
+                        </span>
+                        <span class="stats-detail">
+                            <span class="stats-dot" style="background:var(--accent)"></span>
+                            <span x-text="fmt(stats.processors[proc.id].cached)"></span> cached
+                        </span>
+                        <span class="stats-detail" x-show="stats.processors[proc.id].failed > 0">
+                            <span class="stats-dot" style="background:var(--danger)"></span>
+                            <span x-text="fmt(stats.processors[proc.id].failed)" class="error-text"></span> failed
+                        </span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- ─── CLASSIFIER ROUTING ─── -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Classifier Routing</h3>
+        </div>
+        <div class="stats-routing">
+            <div class="stats-route-item">
+                <span class="stats-route-label">Anime</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:var(--accent);"
+                         :style="'width:' + routePct('to_anime') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_anime)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_anime') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">TV Shows</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#4fc3f7;"
+                         :style="'width:' + routePct('to_tv') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_tv)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_tv') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Cartoons</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#81c784;"
+                         :style="'width:' + routePct('to_cartoons') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_cartoons)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_cartoons') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Reality TV</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#ff7043;"
+                         :style="'width:' + routePct('to_reality') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_reality)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_reality') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Talk Shows</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#26c6da;"
+                         :style="'width:' + routePct('to_talkshow') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_talkshow)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_talkshow') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Documentaries</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#8d6e63;"
+                         :style="'width:' + routePct('to_documentaries') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_documentaries)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_documentaries') + '%'"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── KNOWN LIBRARY + CACHE STATUS ─── -->
+    <div class="stats-bottom-grid">
+        <!-- Known Shows by Type -->
+        <div class="card" style="margin-bottom:0">
+            <div class="card-header">
+                <h3 class="card-title">Known Library</h3>
+                <span class="badge badge-sm" x-text="stats.library.total + ' titles'"></span>
+            </div>
+            <div class="stats-library-types">
+                <div class="stats-lib-type" style="border-left:3px solid var(--accent)">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.anime"></span>
+                    <span class="stats-lib-label">Anime</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #4fc3f7">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.tv"></span>
+                    <span class="stats-lib-label">TV Shows</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #81c784">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.cartoons"></span>
+                    <span class="stats-lib-label">Cartoons</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #ffb74d">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.movie"></span>
+                    <span class="stats-lib-label">Movies</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #ff7043">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.reality"></span>
+                    <span class="stats-lib-label">Reality TV</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #26c6da">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.talkshow"></span>
+                    <span class="stats-lib-label">Talk Shows</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #8d6e63">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.documentaries"></span>
+                    <span class="stats-lib-label">Docs</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cache Status -->
+        <div class="card" style="margin-bottom:0">
+            <div class="card-header">
+                <h3 class="card-title">Cache Status</h3>
+                <button class="btn btn-outline btn-xs" @click="loadCacheDetails()" :disabled="cacheLoading">
+                    <span class="spinner" x-show="cacheLoading" x-cloak style="width:10px;height:10px"></span>
+                    Browse Cache
+                </button>
+            </div>
+            <div class="stats-cache-grid">
+                <div class="stats-cache-item">
+                    <span class="stats-cache-val" x-text="stats.cache.show_cache.entries"></span>
+                    <span class="stats-cache-label">Show Cache</span>
+                    <span class="stats-cache-sub" x-text="stats.cache.show_cache.size_kb + ' KB'"></span>
+                </div>
+                <div class="stats-cache-item">
+                    <span class="stats-cache-val" x-text="stats.cache.api_cache_total.files"></span>
+                    <span class="stats-cache-label">API Cache</span>
+                    <span class="stats-cache-sub" x-text="stats.cache.api_cache_total.size_kb + ' KB'"></span>
+                </div>
+                <div class="stats-cache-item">
+                    <span class="stats-cache-val" x-text="stats.cache.noise_learner.patterns"></span>
+                    <span class="stats-cache-label">Noise Patterns</span>
+                    <span class="stats-cache-sub" x-text="stats.cache.noise_learner.size_kb + ' KB'"></span>
+                </div>
+                <div class="stats-cache-item">
+                    <span class="stats-cache-val" x-text="stats.cache.show_cache.total_hits"></span>
+                    <span class="stats-cache-label">Show Lookups</span>
+                    <span class="stats-cache-sub" x-text="stats.cache.show_cache.variants + ' variants'"></span>
+                </div>
+            </div>
+            <div class="info-banner" style="margin-top:0.75rem;margin-bottom:0">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span style="font-size:0.78rem">API caches auto-expire after <strong>{{ config.cache.api_cache_ttl_hours|default(24) }}h</strong>.
+                Show cache persists for <strong>{{ config.cache.show_cache_ttl_hours|default(720) }}h</strong>.
+                Manage in Settings &gt; Tuning or Recovery &gt; Clear Cache.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TOP SHOWS ─── -->
+    <div class="card" x-show="stats.library.top_shows.length > 0">
+        <div class="card-header">
+            <h3 class="card-title">Top Shows</h3>
+            <span class="badge badge-sm" style="font-size:0.68rem">by cache hits</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th>Title</th>
+                        <th style="width:70px">Type</th>
+                        <th style="width:65px">Seasons</th>
+                        <th style="width:65px">Hits</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(show, idx) in stats.library.top_shows" :key="show.name">
+                        <tr>
+                            <td>
+                                <span class="top-show-rank" :class="idx < 3 ? 'rank-top' : ''" x-text="idx + 1"></span>
+                            </td>
+                            <td><strong x-text="show.name"></strong></td>
+                            <td>
+                                <span class="badge badge-sm"
+                                      :class="show.type === 'anime' ? 'badge-active' : show.type === 'tv' ? '' : 'badge-warn'"
+                                      x-text="show.type" style="font-size:0.7rem;text-transform:capitalize"></span>
+                            </td>
+                            <td x-text="show.seasons || '-'"></td>
+                            <td style="font-weight:600" x-text="fmt(show.hits)"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+
+    <!-- ─── CACHE BROWSER (expandable) ─── -->
+    <div class="card" x-show="cacheDetails" x-cloak>
+        <div class="card-header">
+            <h3 class="card-title">Cache Browser</h3>
+            <div style="display:flex;align-items:center;gap:0.5rem">
+                <div class="cache-search-wrap">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" x-model.debounce.200ms="cacheSearch" placeholder="Search shows..." class="cache-search-input">
+                </div>
+                <select x-model="cacheFilter" style="width:auto;min-width:100px;padding:0.3rem 1.8rem 0.3rem 0.5rem;font-size:0.78rem">
+                    <option value="all">All Types</option>
+                    <option value="anime">Anime</option>
+                    <option value="tv">TV Shows</option>
+                    <option value="cartoons">Cartoons</option>
+                    <option value="movie">Movies</option>
+                </select>
+                <button class="btn btn-outline btn-xs" @click="cacheDetails = null">Close</button>
+            </div>
+        </div>
+
+        <!-- API cache sources -->
+        <div class="cache-sources-bar" x-show="cacheDetails?.api_caches && Object.keys(cacheDetails.api_caches).length > 0">
+            <span class="cache-source-label">API Sources:</span>
+            <template x-for="(info, name) in cacheDetails?.api_caches || {}" :key="name">
+                <span class="cache-source-tag">
+                    <strong x-text="name"></strong>
+                    <span x-text="info.entries + ' entries'"></span>
+                    <span class="cache-source-size" x-text="info.size_kb + ' KB'"></span>
+                </span>
+            </template>
+        </div>
+
+        <!-- Show cache table -->
+        <div class="cache-table-wrap">
+            <div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem"
+                 x-show="filteredCache.length === 0">
+                No cached shows match your filter
+            </div>
+            <table class="data-table" x-show="filteredCache.length > 0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th style="width:70px">Type</th>
+                        <th style="width:60px">Hits</th>
+                        <th style="width:60px">Seasons</th>
+                        <th>Variants</th>
+                        <th style="width:50px">IDs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="show in filteredCache.slice(0, cacheShowLimit)" :key="show.slug">
+                        <tr>
+                            <td>
+                                <strong x-text="show.name" style="font-size:0.85rem"></strong>
+                                <div x-show="show.first_seen" style="font-size:0.68rem;color:var(--text-muted);margin-top:1px">
+                                    First seen: <span x-text="show.first_seen ? show.first_seen.substring(0, 10) : ''"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-sm"
+                                      :class="show.type === 'anime' ? 'badge-active' : show.type === 'tv' ? '' : show.type === 'movie' ? '' : 'badge-warn'"
+                                      x-text="show.type" style="font-size:0.68rem;text-transform:capitalize"></span>
+                            </td>
+                            <td x-text="show.hits" style="font-weight:600"></td>
+                            <td x-text="show.seasons || '-'"></td>
+                            <td>
+                                <div class="cache-variants">
+                                    <template x-for="v in show.variants.slice(0, 3)" :key="v">
+                                        <span class="cache-variant-tag" x-text="v"></span>
+                                    </template>
+                                    <span x-show="show.variants.length > 3" class="cache-variant-more"
+                                          x-text="'+' + (show.variants.length - 3)"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cache-ids">
+                                    <template x-for="(val, key) in show.api_ids" :key="key">
+                                        <span class="cache-id-tag" :title="key + ': ' + val" x-text="key"></span>
+                                    </template>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+            <div x-show="filteredCache.length > cacheShowLimit" style="text-align:center;padding:0.75rem">
+                <button class="btn btn-outline btn-xs" @click="cacheShowLimit += 50"
+                        x-text="'Show more (' + (filteredCache.length - cacheShowLimit) + ' remaining)'"></button>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Overview Cards v2 ── */
+.stats-overview-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;
+}
+.stat-card-v2 {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 1rem 1.1rem; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg-card);
+    transition: border-color 0.2s;
+}
+.stat-card-v2:hover { border-color: var(--border-hover); }
+.stat-card-icon {
+    width: 42px; height: 42px; min-width: 42px;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+}
+.stat-card-body { flex: 1; min-width: 0; }
+.stat-value-v2 { font-size: 1.5rem; font-weight: 700; line-height: 1.2; color: var(--text-primary); }
+.stat-label-v2 { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem; }
+
+/* ── Processors ── */
+.stats-processors { display: flex; flex-direction: column; gap: 0.5rem; }
+.stats-proc-row { padding: 0.6rem 0; border-bottom: 1px solid rgba(42,47,62,0.3); }
+.stats-proc-row:last-child { border-bottom: none; }
+.stats-proc-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; }
+.stats-proc-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.55rem;
+    border-radius: 5px; min-width: 70px; text-align: center;
+}
+.stats-proc-total { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+.stats-proc-sessions { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+.stats-proc-bar-container {
+    height: 5px; background: var(--bg-input); border-radius: 3px; overflow: hidden; margin-bottom: 0.4rem;
+}
+.stats-proc-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.stats-proc-details { display: flex; gap: 1.25rem; font-size: 0.78rem; color: var(--text-muted); }
+.stats-detail { display: flex; align-items: center; gap: 5px; }
+.stats-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; opacity: 0.7; }
+
+/* ── Routing bars ── */
+.stats-routing { display: flex; flex-direction: column; gap: 0.75rem; }
+.stats-route-item { display: flex; align-items: center; gap: 0.75rem; }
+.stats-route-bar-wrap {
+    flex: 1; height: 22px; background: var(--bg-input); border-radius: 4px; overflow: hidden;
+}
+.stats-route-bar { height: 100%; border-radius: 4px; min-width: 4px; transition: width 0.5s ease; opacity: 0.85; }
+.stats-route-label { font-size: 0.82rem; color: var(--text-secondary); min-width: 72px; font-weight: 500; }
+.stats-route-count { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); min-width: 36px; text-align: right; }
+.stats-route-pct { font-size: 0.72rem; color: var(--text-muted); min-width: 32px; text-align: right; }
+
+/* ── Library type grid ── */
+.stats-library-types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+.stats-lib-type {
+    text-align: left; padding: 0.7rem 0.85rem; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg-input); border-left-width: 3px;
+    display: flex; align-items: center; gap: 0.6rem;
+}
+.stats-lib-count { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.stats-lib-label { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ── Cache grid ── */
+.stats-cache-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+.stats-cache-item {
+    text-align: center; padding: 0.65rem; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg-input);
+}
+.stats-cache-val { display: block; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+.stats-cache-label { display: block; font-size: 0.75rem; color: var(--text-muted); }
+.stats-cache-sub { display: block; font-size: 0.68rem; color: var(--text-muted); opacity: 0.6; margin-top: 1px; }
+
+/* ── Cache Browser ── */
+.cache-search-wrap {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px;
+    padding: 0.25rem 0.5rem;
+}
+.cache-search-input {
+    border: none; background: transparent; outline: none;
+    color: var(--text-primary); font-size: 0.78rem; width: 140px; padding: 0;
+}
+.cache-search-input::placeholder { color: var(--text-muted); }
+.cache-sources-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+    padding: 0.6rem 0; margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+.cache-source-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.cache-source-tag {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px;
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text-secondary);
+}
+.cache-source-size { color: var(--text-muted); opacity: 0.6; }
+.cache-table-wrap { max-height: 450px; overflow-y: auto; }
+.cache-variants { display: flex; flex-wrap: wrap; gap: 3px; }
+.cache-variant-tag {
+    font-size: 0.68rem; padding: 1px 5px; border-radius: 3px;
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text-muted);
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cache-variant-more { font-size: 0.68rem; color: var(--text-muted); opacity: 0.6; }
+.cache-ids { display: flex; gap: 3px; }
+.cache-id-tag {
+    font-size: 0.62rem; padding: 1px 4px; border-radius: 3px;
+    background: rgba(59,130,246,0.08); color: var(--accent); font-weight: 600;
+    text-transform: uppercase; cursor: default;
+}
+
+/* ── Bottom Grid (Library + Cache + Top Shows) ── */
+.stats-bottom-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;
+}
+.stats-bottom-grid > .card { margin-bottom: 0; display: flex; flex-direction: column; }
+.stats-bottom-grid > .card > .card-header { flex-shrink: 0; }
+.stats-bottom-grid > .card > div:last-child,
+.stats-bottom-grid > .card > .stats-library-types,
+.stats-bottom-grid > .card > .stats-cache-grid { flex: 1; }
+
+/* ── Top Shows Rank ── */
+.top-show-rank {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+    background: var(--bg-input); border: 1px solid var(--border);
+}
+.top-show-rank.rank-top {
+    background: rgba(59,130,246,0.12); color: var(--accent); border-color: rgba(59,130,246,0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+    .stats-bottom-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 992px) {
+    .stats-overview-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+    .stats-overview-grid { grid-template-columns: 1fr 1fr; }
+    .stats-library-types, .stats-cache-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .stats-overview-grid { grid-template-columns: 1fr; }
+    .stats-bottom-grid { grid-template-columns: 1fr; }
+    .stat-card-v2 { padding: 0.85rem; }
+}
+</style>
+<script>
+function statsApp() {
+    return {
+        stats: {{ stats | tojson }},
+        loading: false,
+        cacheDetails: null,
+        cacheLoading: false,
+        cacheSearch: '',
+        cacheFilter: 'all',
+        cacheShowLimit: 50,
+
+        processorList: [
+            { id: 'classifier',    label: 'Classifier',    color: '#ce93d8' },
+            { id: 'anime',         label: 'Anime',         color: '#6366f1' },
+            { id: 'tv',            label: 'TV Shows',      color: '#4fc3f7' },
+            { id: 'cartoons',      label: 'Cartoons',      color: '#81c784' },
+            { id: 'reality',       label: 'Reality TV',    color: '#ff7043' },
+            { id: 'talkshow',      label: 'Talk Shows',    color: '#26c6da' },
+            { id: 'documentaries', label: 'Documentaries', color: '#8d6e63' },
+            { id: 'movies',        label: 'Movies',        color: '#ffb74d' },
+        ],
+
+        fmt(n) {
+            if (n == null) return '0';
+            return n.toLocaleString();
+        },
+
+        barWidth(procId) {
+            const maxVal = Math.max(
+                ...Object.values(this.stats.processors).map(p => p.processed || 0),
+                1
+            );
+            return Math.round(((this.stats.processors[procId]?.processed || 0) / maxVal) * 100);
+        },
+
+        routePct(key) {
+            const c = this.stats.processors.classifier;
+            const total = (c.to_anime || 0) + (c.to_tv || 0) + (c.to_cartoons || 0) + (c.to_reality || 0) + (c.to_talkshow || 0) + (c.to_documentaries || 0);
+            if (total === 0) return 0;
+            return Math.round(((c[key] || 0) / total) * 100);
+        },
+
+        get filteredCache() {
+            if (!this.cacheDetails?.show_cache) return [];
+            let items = this.cacheDetails.show_cache;
+            if (this.cacheFilter !== 'all') {
+                items = items.filter(s => s.type === this.cacheFilter);
+            }
+            if (this.cacheSearch) {
+                const q = this.cacheSearch.toLowerCase();
+                items = items.filter(s =>
+                    s.name.toLowerCase().includes(q) ||
+                    s.variants.some(v => v.toLowerCase().includes(q))
+                );
+            }
+            return items;
+        },
+
+        async refresh() {
+            this.loading = true;
+            try {
+                const resp = await fetch('/api/stats');
+                this.stats = await resp.json();
+            } catch (e) {
+                console.error('Stats refresh failed:', e);
+            }
+            this.loading = false;
+        },
+
+        async loadCacheDetails() {
+            if (this.cacheDetails) { this.cacheDetails = null; return; }
+            this.cacheLoading = true;
+            this.cacheShowLimit = 50;
+            try {
+                const resp = await fetch('/api/stats/cache-details');
+                this.cacheDetails = await resp.json();
+            } catch (e) {
+                console.error('Cache details failed:', e);
+            }
+            this.cacheLoading = false;
+        },
+    };
+}
+</script>
+{% endblock %}

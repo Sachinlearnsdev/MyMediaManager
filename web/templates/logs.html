@@ -1,0 +1,623 @@
+{% extends "base.html" %}
+{% block title %}Logs - MyMediaManager{% endblock %}
+
+{% block content %}
+<div x-data="logsApp()">
+    <div class="page-header">
+        <h2>Log Viewer</h2>
+        <div class="page-actions" style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+            <!-- Source selector with grouped options -->
+            <select x-model="selectedSource" @change="loadLogs()" class="log-source-select">
+                <option value="pipeline_all">Live Log</option>
+                <optgroup label="Pipelines">
+                    {% for key, info in available_logs.items() %}
+                    {% if info.type == 'pipeline' and key != 'pipeline_all' %}
+                    <option value="{{ key }}">{{ info.label }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </optgroup>
+                <optgroup label="Individual Services">
+                    {% for key, info in available_logs.items() %}
+                    {% if info.type == 'service' %}
+                    <option value="{{ key }}">{{ info.label }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </optgroup>
+            </select>
+
+            <!-- Search filter -->
+            <div class="log-search-wrap">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" x-model.debounce.200ms="searchQuery" placeholder="Filter logs..." class="log-search-input">
+                <button x-show="searchQuery" x-cloak @click="searchQuery=''" class="log-search-clear">&times;</button>
+            </div>
+
+            <label class="log-toggle-label">
+                <input type="checkbox" class="toggle-switch" x-model="autoScroll">
+                Auto-scroll
+            </label>
+        </div>
+    </div>
+
+    <!-- Level + Event Filters -->
+    <div class="log-toolbar">
+        <div class="log-filters">
+            <span class="log-filter-label">Level:</span>
+            <label class="log-filter-chip" :class="{'active': showInfo}">
+                <input type="checkbox" x-model="showInfo" hidden> INFO
+            </label>
+            <label class="log-filter-chip chip-warn" :class="{'active': showWarn}">
+                <input type="checkbox" x-model="showWarn" hidden> WARN
+            </label>
+            <label class="log-filter-chip chip-error" :class="{'active': showError}">
+                <input type="checkbox" x-model="showError" hidden> ERROR
+            </label>
+        </div>
+        <div class="log-filters" x-show="selectedSource" x-cloak>
+            <span class="log-filter-label">Events:</span>
+            <label class="log-filter-chip chip-event" :class="{'active': showImports}">
+                <input type="checkbox" x-model="showImports" hidden> Imports
+            </label>
+            <label class="log-filter-chip chip-event" :class="{'active': showCache}">
+                <input type="checkbox" x-model="showCache" hidden> Cache
+            </label>
+            <label class="log-filter-chip chip-event" :class="{'active': showRouting}">
+                <input type="checkbox" x-model="showRouting" hidden> Routing
+            </label>
+            <label class="log-filter-chip chip-event" :class="{'active': showAll}">
+                <input type="checkbox" x-model="showAll" hidden> All
+            </label>
+        </div>
+        <div class="log-stats" x-show="selectedSource && lines.length > 0" x-cloak>
+            <span x-text="filteredLines.length + ' / ' + lines.length + ' lines'"></span>
+            <span x-show="searchQuery" x-cloak style="color:var(--accent)">
+                (filtered: "<span x-text="searchQuery"></span>")
+            </span>
+        </div>
+    </div>
+
+    <!-- Log container -->
+    <div class="card" style="padding:0;overflow:hidden">
+        <div class="log-container" x-ref="logContainer">
+            <!-- Empty state -->
+            <div class="log-empty" x-show="!selectedSource && !viewingSession" x-cloak>
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.2;margin-bottom:0.75rem">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <p>Waiting for log data...</p>
+                <p style="font-size:0.75rem;opacity:0.5;margin-top:0.25rem">
+                    Start services from the Dashboard to see live output here
+                </p>
+            </div>
+
+            <!-- Loading -->
+            <div class="log-empty" x-show="(selectedSource || viewingSession) && loading" x-cloak>
+                <span class="spinner" style="width:24px;height:24px"></span>
+                <p style="margin-top:0.5rem">Loading logs...</p>
+            </div>
+
+            <!-- No results -->
+            <div class="log-empty" x-show="(selectedSource || viewingSession) && !loading && lines.length === 0" x-cloak>
+                <p>No log entries found</p>
+            </div>
+
+            <!-- Log lines -->
+            <template x-for="(entry, idx) in filteredLines" :key="idx">
+                <div class="log-entry" :class="entry.levelClass">
+                    <span class="log-ts" x-text="entry.time" x-show="entry.time"></span>
+                    <span class="log-svc-badge" x-text="entry.service" x-show="entry.service"
+                          :style="'background:' + svcColor(entry.service)"></span>
+                    <span class="log-level-badge" :class="entry.levelClass" x-text="entry.level" x-show="entry.level"></span>
+                    <span class="log-msg" x-html="highlightMsg(entry.message, entry.event)"></span>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Session viewing banner -->
+    <div class="flash-msg flash-warning" x-show="viewingSession" x-cloak
+         style="display:flex;align-items:center;justify-content:space-between;margin-top:0.5rem">
+        <span>Viewing past session logs. Live updates paused.</span>
+        <button class="btn btn-outline btn-xs" @click="activeSession = null; viewingSession = null; lines = []; if(selectedSource) loadLogs();">
+            Back to Live
+        </button>
+    </div>
+
+    <!-- ─── SESSION HISTORY ─── -->
+    <div class="card" style="margin-top:1rem">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+            <h3 class="card-title" style="margin:0">Session History</h3>
+            <div style="display:flex;align-items:center;gap:0.6rem">
+                <span style="font-size:0.72rem;color:var(--text-muted)">
+                    Retains <strong>{{ retention }}</strong> sessions &middot; older auto-deleted
+                </span>
+                <button class="btn btn-outline btn-sm" @click="loadSessions()" :disabled="sessionsLoading">
+                    <span class="spinner" x-show="sessionsLoading" x-cloak></span>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div x-show="sessionsLoading" x-cloak style="text-align:center;padding:1.5rem">
+            <span class="spinner" style="width:20px;height:20px"></span>
+            <p style="margin-top:0.4rem;font-size:0.8rem;color:var(--text-muted)">Loading sessions...</p>
+        </div>
+
+        <div x-show="sessions.length === 0 && !sessionsLoading" x-cloak style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem">
+            No sessions found
+        </div>
+
+        <div class="session-list" x-show="!sessionsLoading">
+            <template x-for="(sess, idx) in sessions" :key="sess.id">
+                <div class="session-row" :class="{'session-active': activeSession === sess.id, 'session-latest': sess.is_latest}">
+                    <div class="session-header" @click="toggleSession(sess.id)">
+                        <div class="session-info">
+                            <span class="session-time" x-text="sess.started"></span>
+                            <span class="badge badge-sm badge-active" x-show="sess.is_latest" x-cloak>LATEST</span>
+                            <span class="session-meta" x-text="(sess.duration_min || '?') + 'min'"></span>
+                            <span class="session-meta" x-text="sess.total_lines.toLocaleString() + ' lines'"></span>
+                            <span class="session-meta" x-show="sess.imports > 0" style="color:var(--success)" x-text="sess.imports + ' imports'"></span>
+                            <span class="session-meta" x-show="sess.classified > 0" x-text="sess.classified + ' classified'"></span>
+                            <span class="session-meta" x-show="sess.errors > 0" style="color:var(--danger)" x-text="sess.errors + ' errors'"></span>
+                        </div>
+                        <div class="session-services">
+                            <template x-for="svc in sess.services.slice(0, 6)" :key="svc">
+                                <span class="session-svc-dot" :style="'background:' + svcColor(svc)" :title="svc"></span>
+                            </template>
+                            <span x-show="sess.services.length > 6" x-cloak class="session-meta"
+                                  x-text="'+' + (sess.services.length - 6)"></span>
+                        </div>
+                        <svg class="session-chevron" :class="{'rotated': activeSession === sess.id}"
+                             viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                    <!-- Expanded: show service list only (logs go to main viewer above) -->
+                    <div class="session-body" x-show="activeSession === sess.id" x-cloak>
+                        <div class="session-svc-list">
+                            <template x-for="(label, i) in sess.service_labels" :key="i">
+                                <span class="session-svc-tag" :style="'border-left: 3px solid ' + svcColor(sess.services[i])"
+                                      x-text="label"></span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Log Source Selector ── */
+.log-source-select {
+    width: auto; min-width: 220px; display: inline-block;
+    font-size: 0.85rem; padding: 0.4rem 0.6rem;
+}
+
+/* ── Search Box ── */
+.log-search-wrap {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.35rem 0.6rem; min-width: 180px;
+}
+.log-search-input {
+    border: none; background: transparent; outline: none;
+    color: var(--text-primary); font-size: 0.82rem; width: 140px;
+    padding: 0;
+}
+.log-search-input::placeholder { color: var(--text-muted); }
+.log-search-clear {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: 1.1rem; line-height: 1; padding: 0 2px;
+}
+.log-toggle-label {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 0.82rem; color: var(--text-secondary); cursor: pointer;
+}
+
+/* ── Toolbar ── */
+.log-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 1rem;
+    margin-bottom: 0.6rem;
+}
+.log-filters {
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.log-filter-label {
+    font-size: 0.75rem; color: var(--text-muted); margin-right: 0.2rem;
+    text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+}
+.log-filter-chip {
+    font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--border); color: var(--text-muted);
+    transition: all 0.15s; user-select: none;
+}
+.log-filter-chip.active {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.log-filter-chip.chip-warn.active {
+    background: var(--warning); border-color: var(--warning); color: #1a1a2e;
+}
+.log-filter-chip.chip-error.active {
+    background: var(--danger); border-color: var(--danger);
+}
+.log-filter-chip.chip-event.active {
+    background: rgba(var(--accent-rgb, 99,102,241), 0.15);
+    border-color: var(--accent); color: var(--accent);
+}
+.log-stats {
+    margin-left: auto; font-size: 0.75rem; color: var(--text-muted);
+}
+
+/* ── Log Container ── */
+.log-container {
+    max-height: 68vh; overflow-y: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.76rem; line-height: 1.6;
+    background: var(--bg-input); padding: 0.5rem;
+}
+
+.log-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 3rem; color: var(--text-muted); font-size: 0.85rem;
+}
+
+/* ── Log Entry (single line) ── */
+.log-entry {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 1px 4px; border-radius: 3px;
+    border-left: 2px solid transparent;
+}
+.log-entry:hover { background: rgba(255,255,255,0.02); }
+.log-entry.lvl-error { border-left-color: var(--danger); background: rgba(239,68,68,0.04); }
+.log-entry.lvl-warn  { border-left-color: var(--warning); background: rgba(251,191,36,0.04); }
+.log-entry.lvl-idle  { border-left-color: var(--text-muted); text-align: center; opacity: 0.4; font-style: italic; justify-content: center; padding: 0.15rem 0; }
+
+/* Timestamp */
+.log-ts {
+    color: var(--text-muted); opacity: 0.6; white-space: nowrap; flex-shrink: 0;
+    font-size: 0.72rem;
+}
+
+/* Service badge (for pipeline merged views) */
+.log-svc-badge {
+    font-size: 0.65rem; padding: 0 5px; border-radius: 3px;
+    color: #fff; white-space: nowrap; flex-shrink: 0;
+    font-weight: 600; letter-spacing: 0.3px;
+    min-width: 55px; text-align: center;
+}
+
+/* Level badge */
+.log-level-badge {
+    font-size: 0.65rem; padding: 0 4px; border-radius: 3px;
+    font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    min-width: 36px; text-align: center;
+}
+.log-level-badge.lvl-info  { color: var(--accent); opacity: 0.7; }
+.log-level-badge.lvl-warn  { color: var(--warning); }
+.log-level-badge.lvl-error { color: var(--danger); font-weight: 700; }
+
+/* Message */
+.log-msg {
+    color: var(--text-primary); white-space: pre-wrap; word-break: break-word;
+    flex: 1; min-width: 0;
+}
+.log-msg .log-hl-import  { color: #4ade80; font-weight: 600; }
+.log-msg .log-hl-cache   { color: #60a5fa; }
+.log-msg .log-hl-route   { color: #c084fc; font-weight: 500; }
+.log-msg .log-hl-error   { color: var(--danger); font-weight: 600; }
+.log-msg .log-hl-path    { color: var(--text-muted); opacity: 0.7; }
+.log-msg .log-hl-search  { background: rgba(251,191,36,0.25); border-radius: 2px; padding: 0 2px; }
+
+/* ── Session History ── */
+.session-list { display: flex; flex-direction: column; }
+.session-row {
+    border-bottom: 1px solid var(--border);
+}
+.session-row:last-child { border-bottom: none; }
+.session-row.session-latest { }
+.session-header {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.6rem 0.75rem; cursor: pointer;
+    transition: background 0.15s;
+}
+.session-header:hover { background: rgba(255,255,255,0.02); }
+.session-info {
+    display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0;
+}
+.session-time {
+    font-size: 0.82rem; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap;
+}
+.session-meta {
+    font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;
+}
+.session-services {
+    display: flex; gap: 3px; align-items: center; flex-shrink: 0;
+}
+.session-svc-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.session-chevron {
+    flex-shrink: 0; opacity: 0.4; transition: transform 0.2s;
+}
+.session-chevron.rotated { transform: rotate(180deg); }
+.session-body { padding: 0 0.75rem 0.75rem; }
+.session-svc-list {
+    display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem;
+}
+.session-svc-tag {
+    font-size: 0.7rem; padding: 2px 8px; color: var(--text-secondary);
+    background: var(--bg-input); border-radius: 3px;
+}
+.session-row.session-active .session-header {
+    background: rgba(59,130,246,0.06);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .log-toolbar { flex-direction: column; align-items: flex-start; }
+    .log-stats { margin-left: 0; }
+    .log-source-select { min-width: unset; width: 100%; }
+    .log-ts { display: none; }
+    .log-svc-badge { font-size: 0.6rem; min-width: 40px; }
+    .session-info { flex-wrap: wrap; }
+}
+</style>
+<script>
+function logsApp() {
+    // Service colors for pipeline merged views
+    // Split services (automouse_series, automouse_movies) share the same color
+    const SVC_COLORS = {
+        panel:               '#38bdf8',
+        automouse_series:    '#6366f1',
+        automouse_movies:    '#6366f1',
+        autoharbor_series:   '#8b5cf6',
+        autoharbor_movies:   '#8b5cf6',
+        autorouter_series:   '#a78bfa',
+        autorouter_movies:   '#a78bfa',
+        structpilot_series:  '#c084fc',
+        structpilot_movies:  '#c084fc',
+        contentclassifier:   '#ce93d8',
+        tvproc:              '#4fc3f7',
+        cartoonsproc:        '#81c784',
+        animeproc:           '#f472b6',
+        realityproc:         '#ff7043',
+        talkshowproc:        '#26c6da',
+        documentariesproc:   '#8d6e63',
+        movieproc:           '#ffb74d',
+    };
+
+    // Parse a raw log line: "2026-02-15 02:04:32 | INFO  | message..."
+    // Or pipeline tagged: "2026-02-15 02:04:32 [svcname] INFO | message..."
+    const LOG_RE = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*(?:\[(\w+)\]\s*)?(?:\|\s*)?(INFO|WARN(?:ING)?|ERROR|DEBUG)\s*\|?\s*(.*)/i;
+
+    function parseLine(raw) {
+        const m = raw.match(LOG_RE);
+        if (m) {
+            const level = m[3].toUpperCase();
+            const normLevel = level.startsWith('WARN') ? 'WARN' : level;
+            let event = 'other';
+            const msg = m[4] || '';
+            if (/Library Import:|MOVED ->|\[SUCCESS\]/i.test(msg)) event = 'import';
+            else if (/Cache hit:/i.test(msg)) event = 'cache';
+            else if (/Routed:|Classifying:|-> Anime|-> TV|-> Cartoons|-> Reality|-> TalkShow|-> Documentaries/i.test(msg)) event = 'routing';
+            return {
+                time: m[1].substring(11),   // HH:MM:SS only
+                service: m[2] || '',
+                level: normLevel,
+                levelClass: 'lvl-' + normLevel.toLowerCase(),
+                message: msg,
+                event: event,
+                raw: raw,
+            };
+        }
+        // Idle gap marker from log_tailer
+        if (raw.startsWith('──── idle')) {
+            return {
+                time: '', service: '', level: '', levelClass: 'lvl-idle',
+                message: raw, event: 'other', raw: raw,
+            };
+        }
+        // Fallback: unparsed line
+        return {
+            time: '', service: '', level: '', levelClass: '',
+            message: raw, event: 'other', raw: raw,
+        };
+    }
+
+    return {
+        selectedSource: 'pipeline_all',
+        lines: [],
+        loading: false,
+        autoScroll: true,
+        searchQuery: '',
+        viewingSession: null,  // session id if viewing a past session
+
+        // Level filters
+        showInfo: true,
+        showWarn: true,
+        showError: true,
+
+        // Event filters
+        showImports: true,
+        showCache: true,
+        showRouting: true,
+        showAll: true,
+
+        // Session history
+        sessions: [],
+        sessionsLoading: false,
+        activeSession: null,
+        sessionLoading: false,
+
+        init() {
+            // Load sessions on page load
+            this.loadSessions();
+
+            // Auto-load live log (default source)
+            if (this.selectedSource) this.loadLogs();
+
+            // Watch showAll toggle to sync other event filters
+            this.$watch('showAll', val => {
+                if (val) { this.showImports = true; this.showCache = true; this.showRouting = true; }
+            });
+            this.$watch('showImports', () => this._syncAll());
+            this.$watch('showCache', () => this._syncAll());
+            this.$watch('showRouting', () => this._syncAll());
+
+            if (window._socket) {
+                window._socket.on('log_lines', (data) => {
+                    if (!this.viewingSession && data.service === this.selectedSource) {
+                        for (const raw of data.lines) {
+                            this.lines.push(parseLine(raw));
+                        }
+                        if (this.lines.length > 15000) {
+                            this.lines = this.lines.slice(-15000);
+                        }
+                        if (this.autoScroll) this._scrollBottom();
+                    }
+                });
+                window._socket.on('log_history', (data) => {
+                    if (!this.viewingSession && data.service === this.selectedSource) {
+                        this.lines = data.lines.map(parseLine);
+                        this.loading = false;
+                        if (this.autoScroll) this._scrollBottom();
+                    }
+                });
+            }
+        },
+
+        _syncAll() {
+            this.showAll = this.showImports && this.showCache && this.showRouting;
+        },
+
+        _scrollBottom() {
+            this.$nextTick(() => {
+                const el = this.$refs.logContainer;
+                if (el) el.scrollTop = el.scrollHeight;
+            });
+        },
+
+        loadLogs() {
+            this.lines = [];
+            this.viewingSession = null;
+            if (!this.selectedSource) return;
+            this.loading = true;
+            if (window._socket) {
+                window._socket.emit('request_logs', { service: this.selectedSource });
+            }
+        },
+
+        get filteredLines() {
+            return this.lines.filter(entry => {
+                // Level filter
+                if (entry.level === 'INFO'  && !this.showInfo) return false;
+                if (entry.level === 'WARN'  && !this.showWarn) return false;
+                if (entry.level === 'ERROR' && !this.showError) return false;
+
+                // Event filter (only when not showAll)
+                if (!this.showAll) {
+                    if (entry.event === 'import'  && !this.showImports) return false;
+                    if (entry.event === 'cache'   && !this.showCache) return false;
+                    if (entry.event === 'routing' && !this.showRouting) return false;
+                }
+
+                // Text search
+                if (this.searchQuery) {
+                    const q = this.searchQuery.toLowerCase();
+                    if (!entry.raw.toLowerCase().includes(q)) return false;
+                }
+
+                return true;
+            });
+        },
+
+        svcColor(svc) {
+            return SVC_COLORS[svc] || '#888';
+        },
+
+        highlightMsg(msg, event) {
+            if (!msg) return '';
+            let s = this._escHtml(msg);
+
+            // Highlight search matches
+            if (this.searchQuery) {
+                const q = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp('(' + q + ')', 'gi');
+                s = s.replace(re, '<span class="log-hl-search">$1</span>');
+            }
+
+            // Event-based highlights
+            if (event === 'import') {
+                s = s.replace(/(Library Import:|MOVED ->|\[SUCCESS\])/gi, '<span class="log-hl-import">$1</span>');
+            } else if (event === 'cache') {
+                s = s.replace(/(Cache hit:)/gi, '<span class="log-hl-cache">$1</span>');
+            } else if (event === 'routing') {
+                s = s.replace(/(Routed:|-> (?:Anime|TV|Cartoons))/gi, '<span class="log-hl-route">$1</span>');
+            }
+
+            // Highlight errors
+            s = s.replace(/(Error processing|No match for|Low confidence|Moving to Review|Loop Error)/gi,
+                          '<span class="log-hl-error">$1</span>');
+
+            // Dim file paths
+            s = s.replace(/([A-Z]:\\[^\s]+|\/[\w/.-]+\.\w{2,4})/g, '<span class="log-hl-path">$1</span>');
+
+            return s;
+        },
+
+        _escHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        },
+
+        // ── Session History ──
+
+        async loadSessions() {
+            this.sessionsLoading = true;
+            try {
+                const resp = await fetch('/api/sessions');
+                this.sessions = await resp.json();
+            } catch (e) {
+                console.error('Failed to load sessions:', e);
+            }
+            this.sessionsLoading = false;
+        },
+
+        async toggleSession(sessionId) {
+            if (this.activeSession === sessionId) {
+                // Deselect session, go back to live view
+                this.activeSession = null;
+                this.viewingSession = null;
+                this.lines = [];
+                if (this.selectedSource) this.loadLogs();
+                return;
+            }
+            // Load session logs into main viewer
+            this.activeSession = sessionId;
+            this.viewingSession = sessionId;
+            this.lines = [];
+            this.loading = true;
+            try {
+                const resp = await fetch(`/api/sessions/${sessionId}`);
+                const data = await resp.json();
+                this.lines = (data.lines || []).map(parseLine);
+            } catch (e) {
+                console.error('Failed to load session:', e);
+            }
+            this.loading = false;
+            if (this.autoScroll) this._scrollBottom();
+        },
+    };
+}
+</script>
+{% endblock %}

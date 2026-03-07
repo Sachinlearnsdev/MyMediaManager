@@ -1,0 +1,1809 @@
+{% extends "base.html" %}
+{% block title %}Settings - MyMediaManager{% endblock %}
+
+{% block content %}
+<div x-data="settingsApp()">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Settings</h1>
+    </div>
+
+
+    <!-- Tab Navigation -->
+    <div class="settings-tabs">
+        <button class="settings-tab" :class="{ active: tab === 'general' }" @click="switchTab('general')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            General
+        </button>
+        <button class="settings-tab" :class="{ active: tab === 'paths' }" @click="switchTab('paths')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            Paths
+        </button>
+        <button class="settings-tab" :class="{ active: tab === 'apikeys' }" @click="switchTab('apikeys')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+            API Keys
+        </button>
+        <button class="settings-tab" :class="{ active: tab === 'apipriority' }" @click="switchTab('apipriority')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            API Priority
+        </button>
+        <button class="settings-tab" :class="{ active: tab === 'panel' }" @click="switchTab('panel')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            Web Panel
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- General Tab -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div x-show="tab === 'general'" x-cloak>
+
+        <!-- Flow Control -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Flow Control
+                    <span class="help-tip">?<span class="tip-text">Flow control prevents your disk from filling up. The pipeline pauses ingestion when quotas are hit and resumes when space frees up (after files move to the library).</span></span>
+                </h3>
+            </div>
+            <p class="settings-desc">Disk quota and space management for the pipeline.</p>
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">Series Quota (GB)
+                        <span class="help-tip">?<span class="tip-text">Maximum total size of series files allowed in the Work/ pipeline at once. AutoMouse stops pulling from Drop until space frees up.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.flow_control.series_quota_gb" min="1">
+                    <span class="field-hint">Max series data in pipeline</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Movies Quota (GB)
+                        <span class="help-tip">?<span class="tip-text">Maximum total size of movie files allowed in the Work/ pipeline at once. Same as series quota but for the movie pipeline.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.flow_control.movies_quota_gb" min="1">
+                    <span class="field-hint">Max movie data in pipeline</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Min SSD Free (GB)
+                        <span class="help-tip">?<span class="tip-text">Emergency brake. If free space on the data drive drops below this, ALL processing stops to prevent disk-full crashes.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.flow_control.min_ssd_free_gb" min="1">
+                    <span class="field-hint">Stop processing if SSD free falls below</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mouse Stability (Input Drop Folders) -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Mouse Stability (Input Monitoring)
+                    <span class="help-tip">?<span class="tip-text">AutoMouse watches your Drop folders (where you paste/download files). These settings control how long it waits to confirm a file is fully written before moving it into the pipeline. Increase these values if files fail to transfer completely.</span></span>
+                </h3>
+            </div>
+            <div class="info-banner" x-show="isMouseBelowRecommended()" x-cloak style="border-color:var(--warning);background:rgba(234,179,8,0.06)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--warning)">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span><strong>Warning:</strong> Values below recommended defaults may cause incomplete file transfers. Increase if files are being moved before they finish copying.</span>
+            </div>
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">Scan Interval (sec)
+                        <span class="help-tip">?<span class="tip-text">How often AutoMouse checks your Drop folder for new or changed files. Lower = faster pickup but more CPU. Default 2 sec is a good balance.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.mouse_scan_interval" min="1" max="30">
+                    <span class="field-hint">Recommended: 2</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Stability Scans
+                        <span class="help-tip">?<span class="tip-text">Number of consecutive unchanged size readings before a file is considered fully written. With a 2-sec scan interval, 4 scans = 8 seconds of stability. Increase for slow network transfers.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.mouse_stability_scans" min="2" max="20">
+                    <span class="field-hint">Recommended: 4 (= 8 sec at default interval)</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Batch Settle Scans
+                        <span class="help-tip">?<span class="tip-text">How many scans with no new files appearing before AutoMouse starts moving. Prevents grabbing file #1 while files #2-#50 are still being pasted. Increase if you often paste many files at once.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.mouse_batch_settle" min="1" max="10">
+                    <span class="field-hint">Recommended: 2</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Work Pipeline Tuning -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Tuning (Work Pipeline)
+                    <span class="help-tip">?<span class="tip-text">Settings that control internal pipeline processing (extraction, scanning, matching). These affect all processors working on files inside the Work/ folders.</span></span>
+                </h3>
+            </div>
+
+            <h4 class="section-subtitle">Timing</h4>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">Scan Interval (sec)
+                        <span class="help-tip">?<span class="tip-text">How frequently each processor checks its input folder for new files inside Work/. Lower = faster response but more CPU. 3-5 sec is typical.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.scan_interval" min="1" max="60">
+                    <span class="field-hint">How often processors check for new files</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Extract Timeout (sec)
+                        <span class="help-tip">?<span class="tip-text">Maximum time to wait for archive extraction (RAR, ZIP). Large multi-GB archives may need 300-600 seconds on slow drives.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.extract_timeout" min="30" max="3600">
+                    <span class="field-hint">Max time for archive extraction</span>
+                </div>
+            </div>
+
+            <h4 class="section-subtitle">Cleanup</h4>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">Trash Auto-Delete (days)
+                        <span class="help-tip">?<span class="tip-text">Files in the Trash folder older than this are automatically deleted. Set to 0 to disable auto-cleanup (manual only).</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.trash_max_age_days" min="0" max="365">
+                    <span class="field-hint">Default: 7 (0 = never auto-delete)</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Review Auto-Delete (days)
+                        <span class="help-tip">?<span class="tip-text">Unclassified files in Review/ older than this are automatically deleted. These are files the system couldn't match to any show/movie. Set to 0 to disable.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.review_max_age_days" min="0" max="365">
+                    <span class="field-hint">Default: 14 (0 = never auto-delete)</span>
+                </div>
+            </div>
+
+            <h4 class="section-subtitle">Confidence Thresholds
+                <span class="help-tip">?<span class="tip-text">When the system matches a file to a show/movie via API, it gets a confidence score. Files below the threshold go to Review/ instead of being processed. Raise these if you get wrong matches; lower if too many files end up in Review.</span></span>
+            </h4>
+            <p class="settings-desc">Minimum confidence score (0-100) to accept a match. Lower = more permissive, higher = stricter.</p>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">Classifier</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_classifier" min="0" max="100">
+                    <span class="field-hint">Default: 40</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">TV Shows</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_tv" min="0" max="100">
+                    <span class="field-hint">Default: 60</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Cartoons</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_cartoon" min="0" max="100">
+                    <span class="field-hint">Default: 60</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Movies</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_movie" min="0" max="100">
+                    <span class="field-hint">Default: 75</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cache -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Cache
+                    <span class="help-tip">?<span class="tip-text">Caching avoids repeated API calls for the same show/movie. The show cache maps show names to their official titles, and the API cache stores raw API responses. Clear caches via the Recovery page if data seems stale.</span></span>
+                </h3>
+            </div>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">API Cache TTL (hours)
+                        <span class="help-tip">?<span class="tip-text">Raw API responses (episode lists, search results) are cached for this long. Short TTL = fresher data but more API calls. 24-48h is good for most users.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.cache.api_cache_ttl_hours" min="1">
+                    <span class="field-hint">How long API responses are cached</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Show Cache TTL (hours)
+                        <span class="help-tip">?<span class="tip-text">The show cache maps "raw filename" -> "official show name" so the same show isn't looked up again. 720 hours = 30 days. Safe to keep high since show names rarely change.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.cache.show_cache_ttl_hours" min="1">
+                    <span class="field-hint">How long show metadata is cached (default: 720 = 30 days)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logging -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Logging</h3>
+            </div>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">Log Level
+                        <span class="help-tip">?<span class="tip-text">DEBUG = everything (verbose), INFO = normal operations, WARNING = potential issues, ERROR = failures only. Use INFO for normal use, DEBUG when troubleshooting.</span></span>
+                    </label>
+                    <select class="field-input" x-model="cfg.logging.level">
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Log Retention (sessions)</label>
+                    <input type="number" class="field-input" x-model.number="cfg.logging.retention_sessions" min="1" max="50">
+                    <span class="field-hint">Number of log sessions to keep</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Maintenance</h3>
+            </div>
+            <p class="settings-desc">Clear caches and clean up pipeline folders.</p>
+            <div class="maintenance-grid">
+                <div class="maintenance-item">
+                    <div>
+                        <strong>Show Cache</strong>
+                        <small>Learned show identities and name mappings</small>
+                    </div>
+                    <button class="btn btn-outline btn-xs" @click="runMaintenance('clear-cache', {cache_type:'show_cache'})" :disabled="maintBusy">Clear</button>
+                </div>
+                <div class="maintenance-item">
+                    <div>
+                        <strong>API Cache</strong>
+                        <small>Cached API responses (TVDB, TMDB, MAL, etc.)</small>
+                    </div>
+                    <button class="btn btn-outline btn-xs" @click="runMaintenance('clear-cache', {cache_type:'api'})" :disabled="maintBusy">Clear</button>
+                </div>
+                <div class="maintenance-item">
+                    <div>
+                        <strong>All Caches</strong>
+                        <small>Show cache + API cache</small>
+                    </div>
+                    <button class="btn btn-outline btn-xs btn-danger" @click="runMaintenance('clear-cache', {cache_type:'all'})" :disabled="maintBusy">Clear All</button>
+                </div>
+                <div class="maintenance-item">
+                    <div>
+                        <strong>Trash</strong>
+                        <small>Junk files filtered by the pipeline</small>
+                    </div>
+                    <button class="btn btn-outline btn-xs" @click="runMaintenance('clean-trash')" :disabled="maintBusy">Clean</button>
+                </div>
+                <div class="maintenance-item">
+                    <div>
+                        <strong>Review</strong>
+                        <small>Low-confidence files awaiting manual review</small>
+                    </div>
+                    <button class="btn btn-outline btn-xs btn-danger" @click="runMaintenance('clean-review')" :disabled="maintBusy">Clean</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Save Bar -->
+        <div class="tab-save-bar">
+            <button class="btn btn-outline btn-sm" @click="resetConfig()" x-show="hasChanges">Discard</button>
+            <button class="btn btn-primary btn-sm" @click="saveConfig()" :disabled="saving">
+                <span class="spinner" x-show="saving" x-cloak></span>
+                <span x-show="!saving">Save Changes</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Paths Tab -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div x-show="tab === 'paths'" x-cloak>
+
+        <!-- Root Paths -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Root Paths
+                    <span class="help-tip">?<span class="tip-text">Three root directories define where everything lives. Manager Root is for code/config (SSD). Data Root is for processing pipeline (fast drive). Library Root is your final media library (Jellyfin/Plex reads from here).</span></span>
+                </h3>
+            </div>
+            <div class="info-banner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span><strong>Data Root</strong> and <strong>Library Root</strong> must be on the <strong>same drive</strong> so files move instantly (rename, not copy+delete). <strong>Manager Root</strong> stays on your SSD for code, cache, and logs. Sonarr/Radarr download folders should also live on the same drive as Data Root.</span>
+            </div>
+            <!-- Same-drive warning -->
+            <div class="info-banner danger-banner" x-show="!sameDriveCheck()" x-cloak>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span><strong>Different drives detected!</strong> Data Root and Library Root must be on the same physical drive. Cross-drive moves are slow (copy+delete) and can stall the pipeline. Move them to the same drive.</span>
+            </div>
+
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">Manager Root</label>
+                    <div class="path-input-wrap">
+                        <input type="text" class="field-input path-field" x-model="cfg.paths.roots.manager" readonly
+                               @click="openBrowser('cfg.paths.roots.manager', cfg.paths.roots.manager)">
+                        <button type="button" class="path-browse-btn" @click="openBrowser('cfg.paths.roots.manager', cfg.paths.roots.manager)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="field-hint">Code, config, cache, logs — SSD recommended for speed</span>
+                    <div class="folder-structure">
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> bin/ <span class="folder-desc">- pipeline code</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> config/ <span class="folder-desc">- config.json</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> cache/ <span class="folder-desc">- show_cache, API cache</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> logs/ <span class="folder-desc">- service logs</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> web/ <span class="folder-desc">- control panel</span></div>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Data Root</label>
+                    <div class="path-input-wrap">
+                        <input type="text" class="field-input path-field" x-model="cfg.paths.roots.data" readonly
+                               @click="openBrowser('cfg.paths.roots.data', cfg.paths.roots.data)">
+                        <button type="button" class="path-browse-btn" @click="openBrowser('cfg.paths.roots.data', cfg.paths.roots.data)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="field-hint">Pipeline working dirs + drop folders — must be same physical drive as Library Root</span>
+                    <div class="folder-structure">
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Shows/ <span class="folder-desc">- drop new shows here</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Movies/ <span class="folder-desc">- drop new movies here</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Trash/ <span class="folder-desc">- junk files removed by pipeline</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Review/ <span class="folder-desc">- low-confidence files for manual review</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Duplicates/ <span class="folder-desc">- duplicate files detected</span></div>
+                        <div class="folder-item" style="opacity:0.5"><span class="folder-icon">&#128193;</span> .Work/ <span class="folder-desc">- internal pipeline (hidden)</span></div>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Library Root</label>
+                    <div class="path-input-wrap">
+                        <input type="text" class="field-input path-field" x-model="cfg.paths.roots.library" readonly
+                               @click="openBrowser('cfg.paths.roots.library', cfg.paths.roots.library)">
+                        <button type="button" class="path-browse-btn" @click="openBrowser('cfg.paths.roots.library', cfg.paths.roots.library)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="field-hint">Organized media for Jellyfin/Plex — must be same physical drive as Data Root</span>
+                    <div class="folder-structure">
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> TV Shows/ <span class="folder-desc">- TV series</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Movies/ <span class="folder-desc">- movies</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Anime/Shows/ <span class="folder-desc">- anime series</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Anime/Movies/ <span class="folder-desc">- anime films</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Cartoons/ <span class="folder-desc">- cartoon shows</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Reality TV/ <span class="folder-desc">- reality shows</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Talk Shows/ <span class="folder-desc">- talk shows</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Documentaries/Series/ <span class="folder-desc">- doc series</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Documentaries/Movies/ <span class="folder-desc">- doc films</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Stand-Up/ <span class="folder-desc">- comedy specials</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library Output Folders -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Library Output Folders</h3>
+            </div>
+            <p class="settings-desc">Relative paths inside Library Root where processed media is placed.</p>
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">TV Shows</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.tv">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Movies</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.movies">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Anime Shows</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.anime_shows">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Anime Movies</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.anime_movies">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Cartoons</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.cartoons">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Reality TV</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.reality">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Talk Shows</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.talkshow">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Docs Series</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_series">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Docs Movies</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_movies">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Stand-Up</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.standup">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Trash</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.trash_root">
+                </div>
+            </div>
+        </div>
+
+        <!-- Drop Folders -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Drop Folders</h3>
+            </div>
+            <p class="settings-desc">Relative paths inside Data Root where new media is dropped for processing.</p>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">Shows Drop</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.series_pipeline.input_drop">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Movies Drop</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.movie_pipeline.input_drop">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Save Bar -->
+        <div class="tab-save-bar">
+            <button class="btn btn-outline btn-sm" @click="resetConfig()" x-show="hasChanges">Discard</button>
+            <button class="btn btn-primary btn-sm" @click="saveConfig()" :disabled="saving">
+                <span class="spinner" x-show="saving" x-cloak></span>
+                <span x-show="!saving">Save Changes</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- API Keys Tab -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div x-show="tab === 'apikeys'" x-cloak>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">API Keys</h3>
+            </div>
+            <p class="settings-desc">Manage your API keys for media databases. Keys are hidden by default for security.</p>
+
+            <!-- API Key List -->
+            <div class="api-key-list">
+                <template x-for="(key, name) in cfg.api_keys" :key="name">
+                    <div class="api-key-row">
+                        <div class="api-key-name">
+                            <span class="api-key-badge" x-text="name.toUpperCase()"></span>
+                            <span class="api-key-label" x-text="getApiLabel(name)"></span>
+                        </div>
+                        <div class="api-key-value-wrap">
+                            <!-- Read-only input -->
+                            <input x-show="!editingKeys[name]"
+                                   type="text"
+                                   class="field-input api-key-input"
+                                   :value="revealedKeys[name] ? key : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'"
+                                   readonly
+                                   style="opacity:0.7;cursor:default"
+                                   autocomplete="off">
+                            <!-- Edit input -->
+                            <input x-show="editingKeys[name]" x-cloak
+                                   type="text"
+                                   class="field-input api-key-input"
+                                   x-model="editKeyValues[name]"
+                                   :placeholder="'Enter ' + name.toUpperCase() + ' API key'"
+                                   autocomplete="off">
+
+                            <!-- Reveal/Hide (read-only only) -->
+                            <button x-show="!editingKeys[name]" type="button" class="api-key-action-btn"
+                                    @click="toggleKeyVisibility(name)"
+                                    :title="revealedKeys[name] ? 'Hide' : 'Reveal'">
+                                <svg x-show="!revealedKeys[name]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg x-show="revealedKeys[name]" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+
+                            <!-- Edit button (read-only) -->
+                            <button x-show="!editingKeys[name]" type="button" class="api-key-action-btn"
+                                    @click="startEditKey(name)" title="Edit key">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+
+                            <!-- Update button (edit mode) -->
+                            <button x-show="editingKeys[name]" x-cloak type="button" class="btn btn-success btn-xs"
+                                    @click="updateApiKey(name)"
+                                    :disabled="keyValidating[name] || !editKeyValues[name]?.trim()"
+                                    style="min-width:58px">
+                                <span x-show="keyValidating[name]" class="spinner" style="width:12px;height:12px;border-width:1.5px"></span>
+                                <span x-show="!keyValidating[name]">Update</span>
+                            </button>
+
+                            <!-- Cancel button (edit mode) -->
+                            <button x-show="editingKeys[name]" x-cloak type="button" class="btn btn-outline btn-xs"
+                                    @click="cancelEditKey(name)"
+                                    :disabled="keyValidating[name]">Cancel</button>
+
+                            <!-- Delete (read-only only) -->
+                            <button x-show="!editingKeys[name]" type="button" class="api-key-action-btn api-key-delete"
+                                    @click="removeApiKey(name)" title="Remove">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Add New API Key -->
+            <div class="api-key-add">
+                <div class="api-key-add-header">+ Add New API Key</div>
+                <div class="api-key-add-row">
+                    <div class="form-field" style="flex:1;min-width:120px">
+                        <label class="field-label">Service</label>
+                        <select class="field-input" x-model="newKeyPreset" @change="onPresetChange()">
+                            <option value="">Select...</option>
+                            <option value="tvdb" :disabled="'tvdb' in cfg.api_keys">TVDB</option>
+                            <option value="tmdb" :disabled="'tmdb' in cfg.api_keys">TMDB</option>
+                            <option value="mal" :disabled="'mal' in cfg.api_keys">MAL</option>
+                            <option value="trakt" :disabled="'trakt' in cfg.api_keys">Trakt</option>
+                            <option value="omdb" :disabled="'omdb' in cfg.api_keys">OMDb</option>
+                            <option value="fanart" :disabled="'fanart' in cfg.api_keys">Fanart.tv</option>
+                            <option value="igdb" :disabled="'igdb' in cfg.api_keys">IGDB (Twitch)</option>
+                            <option value="youtube" :disabled="'youtube' in cfg.api_keys">YouTube</option>
+                            <option value="custom">Custom...</option>
+                        </select>
+                    </div>
+                    <div class="form-field" x-show="newKeyPreset === 'custom'" style="flex:1;min-width:100px" x-cloak>
+                        <label class="field-label">Name</label>
+                        <input type="text" class="field-input" x-model="newKeyCustomName" placeholder="e.g. myapi">
+                    </div>
+                    <div class="form-field" style="flex:2;min-width:200px">
+                        <label class="field-label" x-text="newKeyPreset === 'igdb' ? 'Client ID' : 'Key'"></label>
+                        <input type="text" class="field-input" x-model="newKeyValue"
+                               :placeholder="newKeyPreset === 'igdb' ? 'Twitch Client ID' : 'Paste API key...'">
+                    </div>
+                    <div class="form-field" x-show="newKeyPreset === 'igdb'" style="flex:2;min-width:200px" x-cloak>
+                        <label class="field-label">Client Secret</label>
+                        <input type="text" class="field-input" x-model="newKeySecret" placeholder="Twitch Client Secret">
+                    </div>
+                    <div class="form-field" x-show="newKeyPreset === 'custom'" style="flex:2;min-width:200px" x-cloak>
+                        <label class="field-label">Test URL <span style="opacity:0.5;font-weight:400">(optional)</span></label>
+                        <input type="text" class="field-input" x-model="newKeyTestUrl" placeholder="https://api.example.com/test">
+                    </div>
+                    <div class="form-field" x-show="newKeyPreset === 'custom'" style="flex:2;min-width:240px" x-cloak>
+                        <label class="field-label">Used for <span style="opacity:0.5;font-weight:400">(API Priority)</span></label>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:2px">
+                            <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;cursor:pointer;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card)">
+                                <input type="checkbox" value="anime" x-model="newKeyCategories" style="margin:0"> Anime
+                            </label>
+                            <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;cursor:pointer;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card)">
+                                <input type="checkbox" value="tv" x-model="newKeyCategories" style="margin:0"> TV Shows
+                            </label>
+                            <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;cursor:pointer;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card)">
+                                <input type="checkbox" value="cartoons" x-model="newKeyCategories" style="margin:0"> Cartoons
+                            </label>
+                            <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;cursor:pointer;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card)">
+                                <input type="checkbox" value="movies" x-model="newKeyCategories" style="margin:0"> Movies
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-field" style="flex:0 0 auto;align-self:flex-end">
+                        <button type="button" class="btn btn-success btn-sm" @click="addApiKey()" :disabled="!canAddKey() || addingKey">
+                            <span x-show="addingKey" class="spinner" style="width:12px;height:12px;border-width:1.5px"></span>
+                            <span x-show="!addingKey">+ Add</span>
+                            <span x-show="addingKey" x-text="isTestableApi(getNewKeyName()) ? 'Verifying...' : 'Adding...'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keyless APIs -->
+            <div style="margin-top:1.25rem">
+                <h4 style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;font-weight:600">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:4px;opacity:0.6">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Free APIs (No Key Required)
+                </h4>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:0.6rem">
+                    <!-- Active: Jikan -->
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600">Jikan</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">MAL data (unofficial)</div>
+                        </div>
+                    </div>
+                    <!-- Active: AniList -->
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600">AniList</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">Anime data (GraphQL API)</div>
+                        </div>
+                    </div>
+                    <!-- Available: TVmaze -->
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid rgba(100,116,139,0.3);background:rgba(100,116,139,0.04)">
+                        <span style="width:8px;height:8px;border-radius:50%;background:rgba(100,116,139,0.4);flex-shrink:0;margin-top:4px"></span>
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;opacity:0.7">TVmaze</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">TV show data (REST API)</div>
+                        </div>
+                    </div>
+                    <!-- Available: Kitsu -->
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid rgba(100,116,139,0.3);background:rgba(100,116,139,0.04)">
+                        <span style="width:8px;height:8px;border-radius:50%;background:rgba(100,116,139,0.4);flex-shrink:0;margin-top:4px"></span>
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;opacity:0.7">Kitsu</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">Anime & manga (JSON:API)</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.7rem;color:var(--text-muted)">
+                    <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:3px;vertical-align:1px"></span>Used by pipeline</span>
+                    <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(100,116,139,0.4);margin-right:3px;vertical-align:1px"></span>Available for integration</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Save Bar -->
+        <div class="tab-save-bar">
+            <button class="btn btn-outline btn-sm" @click="resetConfig()" x-show="hasChanges">Discard</button>
+            <button class="btn btn-primary btn-sm" @click="saveConfig()" :disabled="saving">
+                <span class="spinner" x-show="saving" x-cloak></span>
+                <span x-show="!saving">Save Changes</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- API Priority Tab -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div x-show="tab === 'apipriority'" x-cloak>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">API Priority</h3>
+            </div>
+            <div class="info-banner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span>Each service tries APIs in order. If the first fails, it falls back to the next. Default order is tested to 100% accuracy. Only change if you know what you're doing.</span>
+            </div>
+
+            <!-- Anime Processor -->
+            <h4 class="section-subtitle">Anime Processor</h4>
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">Search Priority
+                        <span class="help-tip">?<span class="tip-text">Which API to use first when searching for an anime title. If the first API fails or returns no results, it tries the next one in the list.</span></span>
+                    </label>
+                    <template x-for="(api, i) in cfg.api_config.anime.search" :key="'anime_search_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.anime.search[i]" x-html="apiOptionsHtml('anime.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.anime.search.splice(i,1)"
+                                x-show="cfg.api_config.anime.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.anime.search.push(apiOptionsFor('anime.search').find(o => !cfg.api_config.anime.search.includes(o.value))?.value || 'jikan')"
+                        x-show="cfg.api_config.anime.search.length < apiOptionsFor('anime.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: MAL > Jikan > AniList</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Episode Titles
+                        <span class="help-tip">?<span class="tip-text">Which API fetches episode title names (e.g. "Phantom Bullet"). Used for the final renamed filename. Jikan has the best English titles.</span></span>
+                    </label>
+                    <template x-for="(api, i) in cfg.api_config.anime.episode_titles" :key="'anime_ep_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.anime.episode_titles[i]" x-html="apiOptionsHtml('anime.episode_titles')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.anime.episode_titles.splice(i,1)"
+                                x-show="cfg.api_config.anime.episode_titles.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.anime.episode_titles.push(apiOptionsFor('anime.episode_titles').find(o => !cfg.api_config.anime.episode_titles.includes(o.value))?.value || 'anilist')"
+                        x-show="cfg.api_config.anime.episode_titles.length < apiOptionsFor('anime.episode_titles').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: Jikan > AniList</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Sequel Chain
+                        <span class="help-tip">?<span class="tip-text">Used to resolve absolute episode numbers into season+episode by walking the anime's sequel chain (Season 1 -> Season 2 -> etc). MAL Official is most reliable.</span></span>
+                    </label>
+                    <template x-for="(api, i) in cfg.api_config.anime.sequel_chain" :key="'anime_seq_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.anime.sequel_chain[i]" x-html="apiOptionsHtml('anime.sequel_chain')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.anime.sequel_chain.splice(i,1)"
+                                x-show="cfg.api_config.anime.sequel_chain.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.anime.sequel_chain.push(apiOptionsFor('anime.sequel_chain').find(o => !cfg.api_config.anime.sequel_chain.includes(o.value))?.value || 'jikan')"
+                        x-show="cfg.api_config.anime.sequel_chain.length < apiOptionsFor('anime.sequel_chain').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: MAL > Jikan</span>
+                </div>
+            </div>
+
+            <!-- Content Classifier -->
+            <h4 class="section-subtitle">Content Classifier</h4>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">Anime Detection
+                        <span class="help-tip">?<span class="tip-text">The Content Classifier uses this API to check if a show exists on MyAnimeList. If found, it's routed to the anime pipeline instead of TV/Cartoons.</span></span>
+                    </label>
+                    <template x-for="(api, i) in cfg.api_config.classifier.anime_check" :key="'cls_anime_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.classifier.anime_check[i]" x-html="apiOptionsHtml('classifier.anime_check')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.classifier.anime_check.splice(i,1)"
+                                x-show="cfg.api_config.classifier.anime_check.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.classifier.anime_check.push(apiOptionsFor('classifier.anime_check').find(o => !cfg.api_config.classifier.anime_check.includes(o.value))?.value || 'jikan')"
+                        x-show="cfg.api_config.classifier.anime_check.length < apiOptionsFor('classifier.anime_check').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: MAL > Jikan</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">TV Detection</label>
+                    <template x-for="(api, i) in cfg.api_config.classifier.tv_check" :key="'cls_tv_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.classifier.tv_check[i]" x-html="apiOptionsHtml('classifier.tv_check')"></select>
+                        </div>
+                    </template>
+                    <span class="field-hint">Default: TVDB</span>
+                </div>
+            </div>
+
+            <!-- TV / Cartoons / Movies -->
+            <h4 class="section-subtitle">TV Shows, Cartoons, Movies & More</h4>
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">TV Search</label>
+                    <template x-for="(api, i) in cfg.api_config.tv.search" :key="'tv_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.tv.search[i]" x-html="apiOptionsHtml('tv.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.tv.search.splice(i,1)"
+                                x-show="cfg.api_config.tv.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.tv.search.push(apiOptionsFor('tv.search').find(o => !cfg.api_config.tv.search.includes(o.value))?.value || 'tvdb')"
+                        x-show="cfg.api_config.tv.search.length < apiOptionsFor('tv.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: TVDB</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Cartoons Search</label>
+                    <template x-for="(api, i) in cfg.api_config.cartoons.search" :key="'cart_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.cartoons.search[i]" x-html="apiOptionsHtml('cartoons.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.cartoons.search.splice(i,1)"
+                                x-show="cfg.api_config.cartoons.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.cartoons.search.push(apiOptionsFor('cartoons.search').find(o => !cfg.api_config.cartoons.search.includes(o.value))?.value || 'tvdb')"
+                        x-show="cfg.api_config.cartoons.search.length < apiOptionsFor('cartoons.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: TVDB</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Movies Search</label>
+                    <template x-for="(api, i) in cfg.api_config.movies.search" :key="'mov_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.movies.search[i]" x-html="apiOptionsHtml('movies.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.movies.search.splice(i,1)"
+                                x-show="cfg.api_config.movies.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.movies.search.push(apiOptionsFor('movies.search').find(o => !cfg.api_config.movies.search.includes(o.value))?.value || 'tmdb')"
+                        x-show="cfg.api_config.movies.search.length < apiOptionsFor('movies.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: TMDB</span>
+                </div>
+            </div>
+            <div class="grid-3" style="margin-top:0.75rem">
+                <div class="form-field">
+                    <label class="field-label">Reality TV Search</label>
+                    <template x-for="(api, i) in cfg.api_config.reality.search" :key="'real_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.reality.search[i]" x-html="apiOptionsHtml('reality.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.reality.search.splice(i,1)"
+                                x-show="cfg.api_config.reality.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.reality.search.push(apiOptionsFor('reality.search').find(o => !cfg.api_config.reality.search.includes(o.value))?.value || 'tvdb')"
+                        x-show="cfg.api_config.reality.search.length < apiOptionsFor('reality.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: TVDB</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Talk Shows Search</label>
+                    <template x-for="(api, i) in cfg.api_config.talkshow.search" :key="'talk_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.talkshow.search[i]" x-html="apiOptionsHtml('talkshow.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.talkshow.search.splice(i,1)"
+                                x-show="cfg.api_config.talkshow.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.talkshow.search.push(apiOptionsFor('talkshow.search').find(o => !cfg.api_config.talkshow.search.includes(o.value))?.value || 'tvdb')"
+                        x-show="cfg.api_config.talkshow.search.length < apiOptionsFor('talkshow.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: TVDB</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Documentaries Search</label>
+                    <template x-for="(api, i) in cfg.api_config.documentaries.search" :key="'doc_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.documentaries.search[i]" x-html="apiOptionsHtml('documentaries.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.documentaries.search.splice(i,1)"
+                                x-show="cfg.api_config.documentaries.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.documentaries.search.push(apiOptionsFor('documentaries.search').find(o => !cfg.api_config.documentaries.search.includes(o.value))?.value || 'tvdb')"
+                        x-show="cfg.api_config.documentaries.search.length < apiOptionsFor('documentaries.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: TVDB</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Save Bar -->
+        <div class="tab-save-bar">
+            <button class="btn btn-outline btn-sm" @click="resetConfig()" x-show="hasChanges">Discard</button>
+            <button class="btn btn-primary btn-sm" @click="saveConfig()" :disabled="saving">
+                <span class="spinner" x-show="saving" x-cloak></span>
+                <span x-show="!saving">Save Changes</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Web Panel Tab -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div x-show="tab === 'panel'" x-cloak>
+
+        <!-- Hosting -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Hosting</h3>
+            </div>
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">Port</label>
+                    <input type="number" class="field-input" x-model.number="cfg.web_panel.port" min="1024" max="65535">
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.35rem">
+                        <button type="button" class="btn btn-outline btn-xs" @click="restartPanel()" :disabled="restartingPanel">
+                            <span x-text="restartingPanel ? 'Restarting...' : 'Apply & Restart Panel'"></span>
+                        </button>
+                        <span class="field-hint">Saves config, updates firewall, restarts on new port</span>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Bind Address
+                        <span class="help-tip">?<span class="tip-text">0.0.0.0 lets you access the panel from other devices on your network (phone, laptop). 127.0.0.1 restricts access to this machine only.</span></span>
+                    </label>
+                    <select class="field-input" x-model="cfg.web_panel.host">
+                        <option value="0.0.0.0">0.0.0.0 (All interfaces)</option>
+                        <option value="127.0.0.1">127.0.0.1 (Localhost only)</option>
+                    </select>
+                    <span class="field-hint">0.0.0.0 = accessible from network, 127.0.0.1 = local only</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Session Timeout (hours)</label>
+                    <input type="number" class="field-input" x-model.number="cfg.web_panel.session_timeout_hours" min="1">
+                    <span class="field-hint">How long before you need to log in again</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto Services -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Auto Services</h3>
+            </div>
+            <p class="settings-desc">Automatically start services when files appear in drop folders and stop when the pipeline is idle.</p>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">
+                        <input type="checkbox" x-model="cfg.web_panel.auto_services.enabled" style="margin-right:0.5rem">
+                        Enable Auto Start/Stop
+                    </label>
+                    <span class="field-hint">Services start when files drop, stop after idle period</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Idle Timeout (minutes)</label>
+                    <input type="number" class="field-input" x-model.number="cfg.web_panel.auto_services.idle_minutes" min="1" max="60"
+                           :disabled="!cfg.web_panel.auto_services?.enabled">
+                    <span class="field-hint">Stop services after this many minutes with empty pipeline</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Authentication</h3>
+            </div>
+            <p class="settings-desc">Set an empty new password to disable authentication (anyone on the network can access the panel).</p>
+            <div class="grid-2">
+                <div class="form-field">
+                    <label class="field-label">Current Password</label>
+                    <div class="password-wrap">
+                        <input :type="showCurrentPw ? 'text' : 'password'" class="field-input" x-model="currentPassword"
+                               autocomplete="off" placeholder="Enter current password">
+                        <button type="button" class="eye-toggle" @click="showCurrentPw = !showCurrentPw">
+                            <svg x-show="!showCurrentPw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg x-show="showCurrentPw" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">New Password</label>
+                    <div class="password-wrap">
+                        <input :type="showNewPw ? 'text' : 'password'" class="field-input" x-model="newPassword"
+                               autocomplete="new-password" placeholder="New password (empty = disable)">
+                        <button type="button" class="eye-toggle" @click="showNewPw = !showNewPw">
+                            <svg x-show="!showNewPw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg x-show="showNewPw" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem;margin-top:0.75rem">
+                <button type="button" class="btn btn-primary btn-sm" @click="changePassword()" :disabled="changingPw">
+                    <span x-text="changingPw ? 'Saving...' : 'Change Password'"></span>
+                </button>
+                <span class="field-hint" x-show="pwMsg" x-text="pwMsg"
+                      :style="pwError ? 'color:var(--danger)' : 'color:var(--success)'"></span>
+            </div>
+        </div>
+
+        <!-- Panel API Key -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Panel API Key</h3>
+            </div>
+            <p class="settings-desc">Use this key to authenticate external tools (Overseerr, Tautulli, custom scripts) with your panel's REST API. Pass it as <code style="color:var(--accent)">X-API-Key</code> header or <code style="color:var(--accent)">?apikey=</code> query param.</p>
+
+            <div class="api-key-row" style="margin-top:0.75rem" x-show="cfg.web_panel.api_key">
+                <div class="api-key-name">
+                    <span class="api-key-badge">KEY</span>
+                </div>
+                <div class="api-key-value-wrap">
+                    <input :type="panelKeyRevealed ? 'text' : 'password'"
+                           class="field-input api-key-input"
+                           :value="cfg.web_panel.api_key" readonly
+                           @click="if(panelKeyRevealed) $event.target.select()"
+                           style="font-family:monospace;font-size:0.85rem">
+                    <button type="button" class="api-key-action-btn" @click="revealPanelKey()"
+                            :title="panelKeyRevealed ? 'Hide' : 'Reveal (requires password)'">
+                        <svg x-show="!panelKeyRevealed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg x-show="panelKeyRevealed" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="api-key-action-btn" @click="copyPanelKey()" title="Copy"
+                            x-show="panelKeyRevealed">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <p class="settings-desc" style="margin-top:0.75rem;color:var(--text-muted)" x-show="!cfg.web_panel.api_key" x-cloak>No API key generated yet. Change your password to auto-generate one.</p>
+        </div>
+
+        <!-- Tab Save Bar -->
+        <div class="tab-save-bar">
+            <button class="btn btn-outline btn-sm" @click="resetConfig()" x-show="hasChanges">Discard</button>
+            <button class="btn btn-primary btn-sm" @click="saveConfig()" :disabled="saving">
+                <span class="spinner" x-show="saving" x-cloak></span>
+                <span x-show="!saving">Save Changes</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" x-show="confirmOpen" x-cloak @click.self="confirmReject()">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-header">
+                <h3 class="modal-title" x-text="confirmTitle"></h3>
+                <button type="button" class="modal-close" @click="confirmReject()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p x-text="confirmMessage" style="margin:0"></p>
+            </div>
+            <div class="modal-footer">
+                <div></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" @click="confirmReject()">Cancel</button>
+                    <button type="button" class="btn btn-primary" @click="confirmAccept()" style="background:var(--danger);border-color:var(--danger)">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Path Browser Modal -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="modal-overlay" x-show="browserOpen" x-cloak @click.self="browserOpen = false"
+         x-transition:enter="modal-enter" x-transition:leave="modal-leave">
+        <div class="modal-dialog modal-browser">
+            <div class="modal-header">
+                <h3 class="modal-title">Select Directory</h3>
+                <button type="button" class="modal-close" @click="browserOpen = false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Current path breadcrumb -->
+                <div class="browser-path-bar">
+                    <button type="button" class="browser-path-segment" @click="browseTo('')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                    </button>
+                    <template x-for="(seg, i) in browserPathSegments" :key="i">
+                        <span class="browser-breadcrumb">
+                            <span class="browser-sep">/</span>
+                            <button type="button" class="browser-path-segment" @click="browseTo(seg.path)" x-text="seg.name"></button>
+                        </span>
+                    </template>
+                </div>
+
+                <!-- Manual path input -->
+                <div class="browser-manual">
+                    <input type="text" class="field-input" x-model="browserManualPath" placeholder="Type path manually..."
+                           @keydown.enter="browseTo(browserManualPath)">
+                    <button type="button" class="btn btn-outline btn-sm" @click="browseTo(browserManualPath)">Go</button>
+                </div>
+
+                <!-- Directory listing -->
+                <div class="browser-listing" x-ref="browserListing">
+                    <div class="browser-loading" x-show="browserLoading">Loading...</div>
+                    <div class="browser-empty" x-show="!browserLoading && browserDirs.length === 0" x-cloak>No subdirectories found</div>
+                    <template x-for="dir in browserDirs" :key="dir.path">
+                        <button type="button" class="browser-item" @dblclick="browseTo(dir.path)"
+                                @click="browserSelected = dir.path"
+                                :class="{ selected: browserSelected === dir.path }">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span x-text="dir.name"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="browser-selected-path" x-text="browserSelected || browserCurrentPath || 'No selection'"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" @click="browserOpen = false">Cancel</button>
+                    <button type="button" class="btn btn-primary" @click="confirmBrowser()">Select</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Verify Modal (for API key reveal) -->
+    <div class="modal-overlay" x-show="verifyModalOpen" x-cloak @click.self="verifyModalOpen = false">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-header">
+                <h3 class="modal-title">Verify Password</h3>
+                <button type="button" class="modal-close" @click="verifyModalOpen = false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="settings-desc">Enter your password to reveal the API key.</p>
+                <div class="form-field">
+                    <div class="password-wrap">
+                        <input type="password" class="field-input" x-model="verifyPassword"
+                               placeholder="Enter password" x-ref="verifyInput"
+                               @keydown.enter="submitVerify()">
+                    </div>
+                </div>
+                <p style="color:var(--danger);font-size:0.85rem;margin-top:0.5rem" x-show="verifyError" x-cloak x-text="verifyError"></p>
+            </div>
+            <div class="modal-footer">
+                <div></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" @click="verifyModalOpen = false">Cancel</button>
+                    <button type="button" class="btn btn-primary" @click="submitVerify()" :disabled="!verifyPassword">Verify</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function settingsApp() {
+    return {
+        tab: 'general',
+        cfg: {{ config | tojson }},
+        originalCfg: JSON.stringify({{ config | tojson }}),
+        saving: false,
+        saved: false,
+        saveError: '',
+        hasChanges: false,
+
+        // Auth
+        currentPassword: '',
+        newPassword: '',
+        showCurrentPw: false,
+        showNewPw: false,
+        changingPw: false,
+        pwMsg: '',
+        pwError: false,
+
+        // API labels & category base options
+        apiLabels: { mal: 'MAL Official', jikan: 'Jikan (MAL)', anilist: 'AniList', kitsu: 'Kitsu', tvdb: 'TVDB', tmdb: 'TMDB', trakt: 'Trakt', tvmaze: 'TVmaze', omdb: 'OMDb', fanart: 'Fanart.tv', igdb: 'IGDB (Twitch)', youtube: 'YouTube Data API' },
+        apiCategoryBase: {
+            'anime.search':          ['mal', 'jikan', 'anilist', 'kitsu'],
+            'anime.episode_titles':  ['jikan', 'anilist', 'kitsu'],
+            'anime.sequel_chain':    ['mal', 'jikan', 'kitsu'],
+            'classifier.anime_check':['mal', 'jikan', 'anilist', 'kitsu'],
+            'classifier.tv_check':   ['tvdb', 'tmdb', 'trakt', 'tvmaze'],
+            'tv.search':             ['tvdb', 'tmdb', 'trakt', 'tvmaze'],
+            'tv.episode_titles':     ['tvdb', 'tmdb', 'tvmaze'],
+            'cartoons.search':       ['tvdb', 'tmdb', 'trakt', 'tvmaze'],
+            'cartoons.episode_titles':['tvdb', 'tmdb', 'tvmaze'],
+            'movies.search':         ['tmdb', 'omdb', 'trakt'],
+            'reality.search':        ['tvdb', 'tmdb', 'trakt', 'tvmaze'],
+            'reality.episode_titles':['tvdb', 'tmdb', 'tvmaze'],
+            'talkshow.search':       ['tvdb', 'tmdb', 'trakt', 'tvmaze'],
+            'talkshow.episode_titles':['tvdb', 'tmdb', 'tvmaze'],
+            'documentaries.search':  ['tvdb', 'tmdb', 'trakt', 'tvmaze'],
+            'documentaries.episode_titles':['tvdb', 'tmdb', 'tvmaze'],
+        },
+
+        // API Keys
+        testableApis: ['tvdb', 'tmdb', 'mal', 'trakt', 'omdb', 'fanart', 'igdb', 'youtube'],
+        defaultApiNames: ['tvdb', 'tmdb', 'mal'],
+        revealedKeys: {},
+        newKeyPreset: '',
+        newKeyCustomName: '',
+        newKeyValue: '',
+        newKeySecret: '',
+        newKeyTestUrl: '',
+        newKeyCategories: [],
+        panelKeyRevealed: false,
+        addingKey: false,
+        editingKeys: {},
+        editKeyValues: {},
+        keyValidating: {},
+
+        // Maintenance
+        maintBusy: false,
+
+        // Panel restart
+        restartingPanel: false,
+
+        // Confirm dialog
+        confirmOpen: false,
+        confirmTitle: '',
+        confirmMessage: '',
+        confirmResolve: null,
+
+        // Password verify modal
+        verifyModalOpen: false,
+        verifyPassword: '',
+        verifyError: '',
+        verifyCallback: null,
+
+        // Path browser
+        browserOpen: false,
+        browserLoading: false,
+        browserCurrentPath: '',
+        browserParentPath: '',
+        browserDirs: [],
+        browserSelected: '',
+        browserManualPath: '',
+        browserTargetField: '',
+        browserPathSegments: [],
+
+        init() {
+            // Ensure tuning defaults for new keys
+            if (!this.cfg.tuning) this.cfg.tuning = {};
+            if (this.cfg.tuning.mouse_scan_interval == null) this.cfg.tuning.mouse_scan_interval = 2;
+            if (this.cfg.tuning.mouse_stability_scans == null) this.cfg.tuning.mouse_stability_scans = 4;
+            if (this.cfg.tuning.mouse_batch_settle == null) this.cfg.tuning.mouse_batch_settle = 2;
+            if (this.cfg.tuning.trash_max_age_days == null) this.cfg.tuning.trash_max_age_days = 7;
+            if (this.cfg.tuning.review_max_age_days == null) this.cfg.tuning.review_max_age_days = 14;
+            // Remove deprecated keys
+            delete this.cfg.tuning.stability_wait;
+            delete this.cfg.tuning.stability_passes;
+            // Ensure auto_services defaults
+            if (!this.cfg.web_panel) this.cfg.web_panel = {};
+            if (!this.cfg.web_panel.auto_services) this.cfg.web_panel.auto_services = {};
+            if (this.cfg.web_panel.auto_services.enabled == null) this.cfg.web_panel.auto_services.enabled = false;
+            if (this.cfg.web_panel.auto_services.idle_minutes == null) this.cfg.web_panel.auto_services.idle_minutes = 5;
+
+            this.originalCfg = JSON.stringify(this.cfg);
+            this.$watch('cfg', () => {
+                this.hasChanges = JSON.stringify(this.cfg) !== this.originalCfg;
+            }, { deep: true });
+
+            // Warn before navigating away with unsaved changes
+            window.addEventListener('beforeunload', (e) => {
+                if (this.hasChanges) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        },
+
+        // ── Tab switching with auto-save ──
+        async switchTab(newTab) {
+            if (newTab === this.tab) return;
+            if (this.hasChanges) {
+                await this.saveConfig();
+            }
+            this.tab = newTab;
+        },
+
+        isMouseBelowRecommended() {
+            const t = this.cfg.tuning || {};
+            return (t.mouse_scan_interval < 2 || t.mouse_stability_scans < 4 || t.mouse_batch_settle < 2);
+        },
+
+        getApiLabel(name) {
+            const labels = {
+                tvdb: 'TheTVDB',
+                tmdb: 'The Movie Database',
+                mal: 'MyAnimeList',
+                anilist: 'AniList',
+                trakt: 'Trakt',
+            };
+            return labels[name] || name;
+        },
+
+        // ── Config save/reset ──
+        async saveConfig() {
+            // Block save if any key is currently being edited (force user to Update or Cancel first)
+            for (const name in this.editingKeys) {
+                if (this.editingKeys[name]) {
+                    window.toast.error('Finish editing the ' + name.toUpperCase() + ' key first (Update or Cancel).');
+                    this.tab = 'apikeys';
+                    return;
+                }
+            }
+            this.saving = true;
+            this.saved = false;
+            this.saveError = '';
+            try {
+                const resp = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.cfg),
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.saved = true;
+                    const oldCfg = JSON.parse(this.originalCfg);
+                    const pathsChanged = JSON.stringify(oldCfg?.paths?.roots) !== JSON.stringify(this.cfg?.paths?.roots);
+                    this.originalCfg = JSON.stringify(this.cfg);
+                    this.hasChanges = false;
+                    if (pathsChanged) {
+                        window.toast.success('Paths saved. Run: sudo /opt/mymediamanager/fix-permissions.sh', 8000);
+                    } else {
+                        window.toast.success('Settings saved.');
+                    }
+                    setTimeout(() => this.saved = false, 5000);
+                } else {
+                    this.saveError = data.error || 'Save failed';
+                    window.toast.error('Save failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                this.saveError = 'Network error: ' + e.message;
+            }
+            this.saving = false;
+        },
+
+        async resetConfig() {
+            try {
+                const resp = await fetch('/api/config');
+                if (resp.ok) {
+                    this.cfg = await resp.json();
+                    this.originalCfg = JSON.stringify(this.cfg);
+                    this.hasChanges = false;
+                }
+            } catch (e) {}
+        },
+
+        // ── Panel restart with firewall ──
+        async restartPanel() {
+            this.restartingPanel = true;
+            try {
+                // Save config first
+                await this.saveConfig();
+                // Trigger panel restart (updates firewall + restarts on new port)
+                const resp = await fetch('/api/restart-panel', { method: 'POST' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    const newPort = this.cfg.web_panel.port;
+                    window.toast.success('Panel restarting on port ' + newPort + '...');
+                    // Wait then redirect to new port
+                    setTimeout(() => {
+                        const loc = window.location;
+                        window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + '/settings';
+                    }, 3000);
+                } else {
+                    window.toast.error(data.error || 'Restart failed');
+                    this.restartingPanel = false;
+                }
+            } catch (e) {
+                window.toast.error('Restart failed: ' + e.message);
+                this.restartingPanel = false;
+            }
+        },
+
+        // ── Maintenance ──
+        async runMaintenance(action, body = {}) {
+            this.maintBusy = true;
+            try {
+                const resp = await fetch('/api/recovery/' + action, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    const msg = data.message || data.status || 'Done';
+                    window.toast.success(msg);
+                } else {
+                    window.toast.error(data.error || 'Action failed');
+                }
+            } catch (e) { window.toast.error('Action failed'); }
+            this.maintBusy = false;
+        },
+
+        // ── Password change ──
+        async changePassword() {
+            this.changingPw = true;
+            this.pwMsg = '';
+            this.pwError = false;
+            try {
+                const resp = await fetch('/api/auth/password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current: this.currentPassword, new: this.newPassword }),
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.pwMsg = this.newPassword ? 'Password updated' : 'Authentication disabled';
+                    this.currentPassword = '';
+                    this.newPassword = '';
+                    const cfgResp = await fetch('/api/config');
+                    if (cfgResp.ok) {
+                        this.cfg = await cfgResp.json();
+                        this.originalCfg = JSON.stringify(this.cfg);
+                    }
+                } else {
+                    this.pwError = true;
+                    this.pwMsg = data.error || 'Failed';
+                }
+            } catch (e) {
+                this.pwError = true;
+                this.pwMsg = 'Network error: ' + e.message;
+            }
+            this.changingPw = false;
+            setTimeout(() => this.pwMsg = '', 5000);
+        },
+
+        // ── API Key management ──
+        toggleKeyVisibility(name) {
+            if (this.revealedKeys[name]) {
+                this.revealedKeys[name] = false;
+                return;
+            }
+            this.promptVerify((ok) => {
+                if (ok) this.revealedKeys[name] = true;
+            });
+        },
+
+        startEditKey(name) {
+            this.editKeyValues[name] = this.cfg.api_keys[name];
+            this.editingKeys[name] = true;
+        },
+
+        cancelEditKey(name) {
+            delete this.editingKeys[name];
+            delete this.editKeyValues[name];
+        },
+
+        async updateApiKey(name) {
+            const key = (this.editKeyValues[name] || '').trim();
+            if (!key) return;
+
+            // If same as current value, just exit edit mode
+            if (key === this.cfg.api_keys[name]) {
+                this.cancelEditKey(name);
+                return;
+            }
+
+            // Auto-test for testable APIs
+            if (this.isTestableApi(name)) {
+                this.keyValidating[name] = true;
+                try {
+                    const resp = await fetch('/api/test-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, key }),
+                    });
+                    if (resp.status === 401) {
+                        window.toast.error('Session expired. Please refresh the page and log in again.');
+                        this.keyValidating[name] = false;
+                        return;
+                    }
+                    const data = await resp.json();
+                    if (!data.valid) {
+                        window.toast.error('Invalid ' + name.toUpperCase() + ' key: ' + (data.error || 'Verification failed'));
+                        this.keyValidating[name] = false;
+                        return;
+                    }
+                } catch (e) {
+                    window.toast.error('Could not verify ' + name.toUpperCase() + ' key: ' + e.message);
+                    this.keyValidating[name] = false;
+                    return;
+                }
+                this.keyValidating[name] = false;
+            }
+
+            // Key is valid — update
+            this.cfg.api_keys[name] = key;
+            delete this.editingKeys[name];
+            delete this.editKeyValues[name];
+            window.toast.success(name.toUpperCase() + ' key updated' + (this.isTestableApi(name) ? ' and verified!' : '!'));
+        },
+
+        sameDriveCheck() {
+            const data = (this.cfg.paths.roots.data || '').toUpperCase();
+            const lib = (this.cfg.paths.roots.library || '').toUpperCase();
+            if (!data || !lib) return true;
+            if (data.length >= 2 && data[1] === ':' && lib.length >= 2 && lib[1] === ':') {
+                return data[0] === lib[0];
+            }
+            if (data.startsWith('/') && lib.startsWith('/')) return true;
+            return true;
+        },
+
+        async removeApiKey(name) {
+            const ok = await this.showConfirm('Remove API Key', 'Remove ' + name.toUpperCase() + ' API key?');
+            if (ok) {
+                delete this.cfg.api_keys[name];
+                if (this.cfg.api_key_tags) delete this.cfg.api_key_tags[name];
+                delete this.editingKeys[name];
+                delete this.editKeyValues[name];
+            }
+        },
+
+        onPresetChange() {
+            if (this.newKeyPreset !== 'custom') {
+                this.newKeyCustomName = '';
+                this.newKeyTestUrl = '';
+                this.newKeyCategories = [];
+            }
+            if (this.newKeyPreset !== 'igdb') {
+                this.newKeySecret = '';
+            }
+        },
+
+        canAddKey() {
+            const name = this.getNewKeyName();
+            if (!name || !this.newKeyValue.trim() || (name in this.cfg.api_keys)) return false;
+            if (name === 'igdb' && !this.newKeySecret.trim()) return false;
+            return true;
+        },
+
+        getNewKeyName() {
+            return this.newKeyPreset === 'custom' ? this.newKeyCustomName.trim().toLowerCase() : this.newKeyPreset;
+        },
+
+        isTestableApi(name) {
+            return this.testableApis.includes(name);
+        },
+
+        // Map priority category keys to tag names for custom API filtering
+        categoryTagMap: {
+            'anime.search': 'anime', 'anime.episode_titles': 'anime', 'anime.sequel_chain': 'anime',
+            'classifier.anime_check': 'anime', 'classifier.tv_check': 'tv',
+            'tv.search': 'tv', 'tv.episode_titles': 'tv',
+            'cartoons.search': 'cartoons', 'cartoons.episode_titles': 'cartoons',
+            'movies.search': 'movies',
+            'reality.search': 'tv', 'reality.episode_titles': 'tv',
+            'talkshow.search': 'tv', 'talkshow.episode_titles': 'tv',
+            'documentaries.search': 'tv', 'documentaries.episode_titles': 'tv',
+        },
+
+        apiOptionsFor(category) {
+            const base = this.apiCategoryBase[category] || [];
+            const seen = new Set(base);
+            const opts = base.map(v => ({ value: v, label: this.apiLabels[v] || v.toUpperCase() }));
+            const tag = this.categoryTagMap[category];
+            const tags = this.cfg.api_key_tags || {};
+            // Add configured API keys that are relevant to this category
+            for (const k of Object.keys(this.cfg.api_keys || {})) {
+                if (seen.has(k)) continue;
+                const keyTags = tags[k];
+                // If key has category tags, only show in matching categories
+                if (keyTags && keyTags.length > 0) {
+                    if (!keyTags.includes(tag)) continue;
+                }
+                // Skip APIs that don't provide search/episode data
+                if (['fanart', 'igdb', 'youtube'].includes(k) && !keyTags) continue;
+                seen.add(k);
+                opts.push({ value: k, label: this.apiLabels[k] || k.toUpperCase() });
+            }
+            return opts;
+        },
+
+        apiLabel(value) {
+            return this.apiLabels[value] || value.toUpperCase();
+        },
+
+        apiOptionsHtml(category) {
+            return this.apiOptionsFor(category).map(o =>
+                '<option value="' + o.value + '">' + o.label + '</option>'
+            ).join('');
+        },
+
+        async addApiKey() {
+            const name = this.getNewKeyName();
+            const key = this.newKeyValue.trim();
+            if (!name || !key) return;
+
+            this.addingKey = true;
+            const secret = this.newKeySecret.trim();
+            const testUrl = this.newKeyTestUrl.trim();
+
+            // Build request body
+            const body = { name, key };
+            if (name === 'igdb' && secret) body.secret = secret;
+            if (this.newKeyPreset === 'custom' && testUrl) body.test_url = testUrl;
+
+            // Auto-test for testable APIs or custom with test URL
+            const shouldTest = this.isTestableApi(name) || (this.newKeyPreset === 'custom' && testUrl);
+            if (shouldTest) {
+                try {
+                    const resp = await fetch('/api/test-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    if (resp.status === 401) {
+                        window.toast.error('Session expired. Please refresh the page and log in again.');
+                        this.addingKey = false;
+                        return;
+                    }
+                    const data = await resp.json();
+                    if (!data.valid) {
+                        window.toast.error('Invalid ' + name.toUpperCase() + ' key: ' + (data.error || 'Verification failed') + '. Key was not added.');
+                        this.addingKey = false;
+                        return;
+                    }
+                } catch (e) {
+                    window.toast.error('Could not verify key: ' + e.message);
+                    this.addingKey = false;
+                    return;
+                }
+            }
+            this.addingKey = false;
+
+            // For IGDB, store as "client_id:client_secret"
+            this.cfg.api_keys[name] = (name === 'igdb' && secret) ? key + ':' + secret : key;
+            // Save category tags for custom keys
+            if (this.newKeyPreset === 'custom' && this.newKeyCategories.length > 0) {
+                if (!this.cfg.api_key_tags) this.cfg.api_key_tags = {};
+                this.cfg.api_key_tags[name] = [...this.newKeyCategories];
+            }
+            this.newKeyPreset = '';
+            this.newKeyCustomName = '';
+            this.newKeyValue = '';
+            this.newKeySecret = '';
+            this.newKeyTestUrl = '';
+            this.newKeyCategories = [];
+            const verified = this.isTestableApi(name) || testUrl;
+            window.toast.success(name.toUpperCase() + ' key added' + (verified ? ' and verified!' : '!'));
+        },
+
+        // ── Panel API Key reveal ──
+        revealPanelKey() {
+            if (this.panelKeyRevealed) {
+                this.panelKeyRevealed = false;
+                return;
+            }
+            this.promptVerify((ok) => {
+                if (ok) this.panelKeyRevealed = true;
+            });
+        },
+
+        copyPanelKey() {
+            navigator.clipboard.writeText(this.cfg.web_panel.api_key);
+        },
+
+        // ── Verify password modal ──
+        promptVerify(callback) {
+            this.verifyCallback = callback;
+            this.verifyPassword = '';
+            this.verifyError = '';
+            this.verifyModalOpen = true;
+            this.$nextTick(() => {
+                if (this.$refs.verifyInput) this.$refs.verifyInput.focus();
+            });
+        },
+
+        async submitVerify() {
+            this.verifyError = '';
+            try {
+                const resp = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: this.verifyPassword }),
+                });
+                const data = await resp.json();
+                if (data.verified) {
+                    this.verifyModalOpen = false;
+                    if (this.verifyCallback) this.verifyCallback(true);
+                } else {
+                    this.verifyError = 'Incorrect password';
+                }
+            } catch (e) {
+                this.verifyError = 'Network error';
+            }
+        },
+
+        // ── Confirm dialog ──
+        showConfirm(title, message) {
+            return new Promise((resolve) => {
+                this.confirmTitle = title;
+                this.confirmMessage = message;
+                this.confirmResolve = resolve;
+                this.confirmOpen = true;
+            });
+        },
+        confirmAccept() {
+            this.confirmOpen = false;
+            if (this.confirmResolve) this.confirmResolve(true);
+        },
+        confirmReject() {
+            this.confirmOpen = false;
+            if (this.confirmResolve) this.confirmResolve(false);
+        },
+
+        // ── Path browser ──
+        openBrowser(targetField, currentValue) {
+            this.browserTargetField = targetField;
+            this.browserSelected = '';
+            this.browserManualPath = currentValue || '';
+            this.browserOpen = true;
+            this.browseTo(currentValue || '');
+        },
+
+        async browseTo(path) {
+            this.browserLoading = true;
+            this.browserManualPath = path;
+            try {
+                const resp = await fetch('/api/browse?path=' + encodeURIComponent(path));
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.browserCurrentPath = data.current;
+                    this.browserParentPath = data.parent;
+                    this.browserDirs = data.dirs;
+                    this.browserManualPath = data.current;
+                    this.browserSelected = '';
+                    // Build breadcrumb segments
+                    this.buildBreadcrumbs(data.current);
+                }
+            } catch (e) {}
+            this.browserLoading = false;
+        },
+
+        buildBreadcrumbs(fullPath) {
+            if (!fullPath) { this.browserPathSegments = []; return; }
+            const sep = fullPath.includes('\\') ? '\\' : '/';
+            const parts = fullPath.split(sep).filter(Boolean);
+            const segments = [];
+            let cumulative = '';
+            for (let i = 0; i < parts.length; i++) {
+                cumulative += (i === 0 && !fullPath.startsWith(sep) ? '' : sep) + parts[i];
+                // Windows drive fix: C: -> C:\
+                if (i === 0 && parts[i].endsWith(':')) cumulative += '\\';
+                segments.push({ name: parts[i], path: cumulative });
+            }
+            this.browserPathSegments = segments;
+        },
+
+        confirmBrowser() {
+            let selected = this.browserSelected || this.browserCurrentPath;
+            if (selected && this.browserTargetField) {
+                // Auto-append /MyMediaManager for data root
+                if (this.browserTargetField === 'cfg.paths.roots.data') {
+                    const sep = selected.includes('\\') ? '\\' : '/';
+                    const basename = selected.split(sep).filter(Boolean).pop() || '';
+                    if (basename.toLowerCase() !== 'mymediamanager') {
+                        selected = selected.replace(/[\/\\]$/, '') + sep + 'MyMediaManager';
+                    }
+                }
+                // Navigate the nested property path like 'cfg.paths.roots.manager'
+                const parts = this.browserTargetField.split('.');
+                let obj = this;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    obj = obj[parts[i]];
+                }
+                obj[parts[parts.length - 1]] = selected;
+            }
+            this.browserOpen = false;
+        },
+    };
+}
+</script>
+{% endblock %}

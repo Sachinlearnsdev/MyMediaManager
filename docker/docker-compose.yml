@@ -1,0 +1,30 @@
+services:
+  mymediamanager:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mymediamanager
+    restart: unless-stopped
+    network_mode: host
+
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+
+    volumes:
+      # ── Persistent app data ──
+      - ./config:/app/config
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+
+      # ── Mount your storage drive(s) ──
+      # Mount the drive where you want data + library to live.
+      # Then set the exact paths via Settings > Paths in the web panel.
+      # Data root and Library root MUST be on the same mount for fast file moves.
+      #
+      # Examples:
+      #   - /srv/storage:/srv/storage
+      #   - /mnt/media:/mnt/media
+      #   - /home/user/media:/home/user/media
+      - /srv:/srv

@@ -1,0 +1,1435 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - MyMediaManager{% endblock %}
+
+{% block content %}
+<div x-data="dashboardApp()" x-init="initDashboard()">
+    <!-- Master Controls -->
+    <div class="page-header">
+        <h2>Dashboard</h2>
+        <div class="page-actions">
+            <button class="btn btn-outline btn-sm" @click="startAll()" :disabled="allRunning || starting">
+                <span class="spinner" x-show="starting" x-cloak></span>
+                Start All
+            </button>
+            <button class="btn btn-outline btn-sm" @click="stopAll()" :disabled="allStopped || stopping">
+                <span class="spinner" x-show="stopping" x-cloak></span>
+                Stop All
+            </button>
+            <button class="btn btn-outline btn-sm" @click="restartAll()" :disabled="restarting">
+                <span class="spinner" x-show="restarting" x-cloak></span>
+                Restart All
+            </button>
+        </div>
+    </div>
+
+    <!-- API Key Warning -->
+    <div class="info-banner danger-banner" style="margin-bottom:1rem;padding:0.75rem 1rem" x-show="keyWarning && !keyWarning.all_ready" x-cloak>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="flex-shrink:0">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <div>
+            <strong>Missing API Keys:</strong> <span x-text="keyWarning?.missing?.join(', ')"></span>
+            <br><small style="opacity:0.8">Some services cannot start until keys are added. Go to <a href="/settings" style="color:var(--accent);text-decoration:underline">Settings &rarr; API Keys</a> to configure them.</small>
+        </div>
+    </div>
+
+    <!-- First-run setup banner -->
+    <div class="info-banner accent-banner" style="margin-bottom:1rem;padding:0.75rem 1rem" x-show="setupStatus && !setupStatus.all_done" x-cloak>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="flex-shrink:0">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <div>
+            <strong>Setup incomplete</strong> (<span x-text="setupStatus?.completed"></span>/<span x-text="setupStatus?.total"></span> steps done).
+            <a href="/guide" style="color:var(--accent);text-decoration:underline">Open the Setup Guide</a> to finish configuring MyMediaManager.
+        </div>
+    </div>
+
+    <!-- Infrastructure Error Banner -->
+    <!-- Infrastructure Error Modal -->
+    <div class="modal-overlay" x-show="infraErrors" x-cloak @click.self="dismissInfraError()" style="z-index:9999">
+        <div class="modal-dialog modal-md modal-danger">
+            <div class="modal-header">
+                <div style="display:flex;align-items:center;gap:0.6rem">
+                    <div style="background:var(--danger);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <h3 class="modal-title">Cannot start services</h3>
+                </div>
+                <button class="modal-close" @click="dismissInfraError()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <template x-for="issue in (infraErrors || [])" :key="issue">
+                    <div style="background:var(--bg-input);padding:0.6rem 0.85rem;border-radius:8px;font-size:0.82rem;margin-bottom:0.5rem;white-space:pre-wrap;border:1px solid var(--border);font-family:monospace;line-height:1.5" x-text="issue"></div>
+                </template>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-end">
+                <button class="btn btn-primary btn-sm" @click="dismissInfraError()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Drop Folder Guide ── -->
+    <div class="card" style="padding:0.75rem 1rem;margin-bottom:0.75rem;font-size:0.78rem;color:var(--text-muted)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem 2rem">
+            <div>
+                <div style="margin-bottom:0.4rem">
+                    <strong style="color:#4fc3f7;font-size:0.85rem">Drop Shows</strong>
+                    <span style="opacity:0.5;font-size:0.72rem;margin-left:0.3rem">Drop any episodic series content here. Auto-classified and sorted into:</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.2rem">
+                    <div><span style="color:#4fc3f7">&bull;</span> <strong>TV Shows/</strong> &mdash; dramas, sitcoms, thrillers, miniseries, crime, sci-fi series</div>
+                    <div><span style="color:#81c784">&bull;</span> <strong>Cartoons/</strong> &mdash; western animated series, adult animation, kids animation</div>
+                    <div><span style="color:#f472b6">&bull;</span> <strong>Anime/Shows/</strong> &mdash; Japanese anime series, OVAs, ONAs</div>
+                    <div><span style="color:#ff7043">&bull;</span> <strong>Reality TV/</strong> &mdash; competition, dating, survival, cooking, talent, makeover shows</div>
+                    <div><span style="color:#26c6da">&bull;</span> <strong>Talk Shows/</strong> &mdash; late night, interviews, variety, panel shows, news comedy</div>
+                    <div><span style="color:#8d6e63">&bull;</span> <strong>Documentaries/Series/</strong> &mdash; documentary series, true crime, nature, history docuseries</div>
+                </div>
+            </div>
+            <div>
+                <div style="margin-bottom:0.4rem">
+                    <strong style="color:#ffb74d;font-size:0.85rem">Drop Movies</strong>
+                    <span style="opacity:0.5;font-size:0.72rem;margin-left:0.3rem">Drop any single-file movie content here. Auto-classified and sorted into:</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.2rem">
+                    <div><span style="color:#ffb74d">&bull;</span> <strong>Movies/</strong> &mdash; feature films of any genre (action, horror, comedy, drama, etc.)</div>
+                    <div><span style="color:#f472b6">&bull;</span> <strong>Anime/Movies/</strong> &mdash; Japanese animated films, grouped by collection</div>
+                    <div><span style="color:#ab47bc">&bull;</span> <strong>Stand-Up/</strong> &mdash; stand-up comedy specials, comedy concerts</div>
+                    <div><span style="color:#8d6e63">&bull;</span> <strong>Documentaries/Movies/</strong> &mdash; documentary films, one-off feature docs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Pipeline Flow ── -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Pipeline Flow</h3>
+            <div class="tok-legend">
+                <span class="tok-legend-item"><span class="tok tok-video" style="width:10px;height:10px"></span> Video</span>
+                <span class="tok-legend-item"><span class="tok tok-folder" style="width:10px;height:10px"></span> Folder</span>
+                <span class="tok-legend-item"><span class="tok tok-archive" style="width:11px;height:11px"></span> Archive</span>
+            </div>
+        </div>
+
+        <div class="pipeline-columns">
+            <!-- Series Pipeline Column -->
+            <div class="pipeline-col col-series">
+                <div class="pipeline-col-title">Series Pipeline</div>
+                <!-- Drop Shows -->
+                <div class="vflow-node vflow-entry">
+                    <div class="flow-track-box flow-entry-box" :class="{ active: getStageCount('series','drop_shows') > 0 }">
+                        <template x-for="f in getStageFiles('series','drop_shows').slice(0,10)" :key="f.name">
+                            <span class="intake-dot" :class="[dropDotClass(f), { tracked: isDropTracked('series','drop_shows',f.name) }]" :style="getDropTrackStyle('series','drop_shows',f.name)" :title="f.name + (f.size_mb ? ' (' + f.size_mb + ' MB)' : '')" @click.stop="trackDropFile('series','drop_shows',f.name)"></span>
+                        </template>
+                        <span class="intake-overflow" x-show="getStageFiles('series','drop_shows').length > 10"
+                              x-text="'+' + (getStageFiles('series','drop_shows').length - 10)"></span>
+                        <span class="flow-track-empty" x-show="getStageCount('series','drop_shows') === 0">&mdash;</span>
+                    </div>
+                    <div class="vflow-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="vertical-align:-1px"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><polyline points="16 2 12 6 8 2"/></svg>
+                        Drop Shows
+                    </div>
+                </div>
+                <!-- Stages: Intake → Processing → Identify -->
+                <template x-for="stage in seriesStages" :key="stage.id">
+                    <div class="vflow-stage-wrap">
+                        <div class="vflow-pipe" :class="{ active: getTokensForStage('series', stage.id).length > 0 }"></div>
+                        <div class="vflow-node">
+                            <div class="flow-track-box" :class="[stage.color, { active: getTokensForStage('series', stage.id).length > 0 }]">
+                                <template x-for="token in getTokensForStage('series', stage.id).slice(0,10)" :key="token.id">
+                                    <div class="tok" :class="tokClass(token, stage.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                </template>
+                                <span class="intake-overflow" x-show="getTokensForStage('series', stage.id).length > 10"
+                                      x-text="'+' + (getTokensForStage('series', stage.id).length - 10)"></span>
+                                <span class="flow-track-empty" x-show="getTokensForStage('series', stage.id).length === 0">&mdash;</span>
+                                <span class="extract-msg" x-show="extractMsg === 'series:' + stage.id" x-transition x-cloak>Extracted!</span>
+                            </div>
+                            <div class="vflow-label" x-text="stage.label"></div>
+                            <template x-if="stage.sideBranch">
+                                <div class="vflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
+                                    <div class="side-connector"></div>
+                                    <div class="side-branch-wrap">
+                                        <svg class="side-return-arrow" viewBox="0 0 30 70" fill="none" title="Retry sends back to Processing">
+                                            <path d="M22 68 Q22 12, 6 4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/>
+                                            <path d="M2 10 L6 2 L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
+                                            <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
+                                                <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                            </template>
+                                            <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
+                                                  x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
+                                        </div>
+                                        <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <!-- Branch: TV Shows / Cartoons / Anime -->
+                <div class="vflow-pipe" :class="{ active: seriesBranches.some(b => getTokensForStage(b.pipe, b.id).length > 0) }"></div>
+                <div class="vflow-branches" :class="{ 'has-active': seriesBranches.some(b => getTokensForStage(b.pipe, b.id).length > 0) }">
+                    <template x-for="branch in seriesBranches" :key="branch.id">
+                        <div class="vflow-branch-item" :class="branch.brClass">
+                            <div class="flow-track-box" :class="[branch.color, { active: getTokensForStage(branch.pipe, branch.id).length > 0 }]">
+                                <template x-for="token in getTokensForStage(branch.pipe, branch.id).slice(0,10)" :key="token.id">
+                                    <div class="tok" :class="tokClass(token, branch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                </template>
+                                <span class="intake-overflow" x-show="getTokensForStage(branch.pipe, branch.id).length > 10"
+                                      x-text="'+' + (getTokensForStage(branch.pipe, branch.id).length - 10)"></span>
+                                <span class="flow-track-empty" x-show="getTokensForStage(branch.pipe, branch.id).length === 0">&mdash;</span>
+                            </div>
+                            <span class="vflow-branch-label" x-text="branch.label"></span>
+                        </div>
+                    </template>
+                </div>
+                <!-- Library destination -->
+                <div class="vflow-pipe short"></div>
+                <div class="vflow-node">
+                    <a href="/library" class="vflow-dest">Library</a>
+                    <div class="vflow-side side-dup" x-show="getTokensForStage('duplicates','dup_shows').length > 0 || dupFiles.filter(f => f.pipeline === 'shows').length > 0" x-cloak>
+                        <div class="side-connector"></div>
+                        <div class="flow-track-box" :class="{ active: getTokensForStage('duplicates','dup_shows').length > 0 }">
+                            <template x-for="token in getTokensForStage('duplicates','dup_shows').slice(0,10)" :key="token.id">
+                                <div class="tok" :class="tokClass(token, 'dup_shows')" :title="token.name" @click.stop="trackToken(token)"></div>
+                            </template>
+                            <span class="flow-track-empty" x-show="getTokensForStage('duplicates','dup_shows').length === 0">&mdash;</span>
+                        </div>
+                        <span class="side-label side-label-clickable" @click="openDuplicatesPanel()">Duplicates</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Movies Pipeline Column -->
+            <div class="pipeline-col col-movies">
+                <div class="pipeline-col-title">Movies Pipeline</div>
+                <!-- Drop Movies -->
+                <div class="vflow-node vflow-entry">
+                    <div class="flow-track-box flow-entry-box" :class="{ active: getStageCount('movies','drop_movies') > 0 }">
+                        <template x-for="f in getStageFiles('movies','drop_movies').slice(0,10)" :key="f.name">
+                            <span class="intake-dot" :class="[dropDotClass(f, true), { tracked: isDropTracked('movies','drop_movies',f.name) }]" :style="getDropTrackStyle('movies','drop_movies',f.name)" :title="f.name + (f.size_mb ? ' (' + f.size_mb + ' MB)' : '')" @click.stop="trackDropFile('movies','drop_movies',f.name)"></span>
+                        </template>
+                        <span class="intake-overflow" x-show="getStageFiles('movies','drop_movies').length > 10"
+                              x-text="'+' + (getStageFiles('movies','drop_movies').length - 10)"></span>
+                        <span class="flow-track-empty" x-show="getStageCount('movies','drop_movies') === 0">&mdash;</span>
+                    </div>
+                    <div class="vflow-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="vertical-align:-1px"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                        Drop Movies
+                    </div>
+                </div>
+                <!-- Stages: Intake → Processing → Staged -->
+                <template x-for="stage in movieStages" :key="stage.id">
+                    <div class="vflow-stage-wrap">
+                        <div class="vflow-pipe" :class="{ active: getTokensForStage('movies', stage.id).length > 0 }"></div>
+                        <div class="vflow-node">
+                            <div class="flow-track-box" :class="[stage.color, { active: getTokensForStage('movies', stage.id).length > 0 }]">
+                                <template x-for="token in getTokensForStage('movies', stage.id).slice(0,10)" :key="token.id">
+                                    <div class="tok" :class="tokClass(token, stage.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                </template>
+                                <span class="intake-overflow" x-show="getTokensForStage('movies', stage.id).length > 10"
+                                      x-text="'+' + (getTokensForStage('movies', stage.id).length - 10)"></span>
+                                <span class="flow-track-empty" x-show="getTokensForStage('movies', stage.id).length === 0">&mdash;</span>
+                                <span class="extract-msg" x-show="extractMsg === 'movies:' + stage.id" x-transition x-cloak>Extracted!</span>
+                            </div>
+                            <div class="vflow-label" x-text="stage.label"></div>
+                            <template x-if="stage.sideBranch">
+                                <div class="vflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
+                                    <div class="side-connector"></div>
+                                    <div class="side-branch-wrap">
+                                        <svg class="side-return-arrow" viewBox="0 0 30 70" fill="none" title="Retry sends back to Processing">
+                                            <path d="M22 68 Q22 12, 6 4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/>
+                                            <path d="M2 10 L6 2 L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
+                                            <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
+                                                <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                            </template>
+                                            <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
+                                                  x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
+                                        </div>
+                                        <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <!-- Library destination -->
+                <div class="vflow-pipe short"></div>
+                <div class="vflow-node">
+                    <a href="/library" class="vflow-dest">Library</a>
+                    <div class="vflow-side side-dup" x-show="getTokensForStage('duplicates','dup_movies').length > 0 || dupFiles.filter(f => f.pipeline === 'movies').length > 0" x-cloak>
+                        <div class="side-connector"></div>
+                        <div class="flow-track-box" :class="{ active: getTokensForStage('duplicates','dup_movies').length > 0 }">
+                            <template x-for="token in getTokensForStage('duplicates','dup_movies').slice(0,10)" :key="token.id">
+                                <div class="tok" :class="tokClass(token, 'dup_movies')" :title="token.name" @click.stop="trackToken(token)"></div>
+                            </template>
+                            <span class="flow-track-empty" x-show="getTokensForStage('duplicates','dup_movies').length === 0">&mdash;</span>
+                        </div>
+                        <span class="side-label side-label-clickable" @click="openDuplicatesPanel()">Duplicates</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Review File Manager ── -->
+    <div class="card" x-show="reviewOpen" x-transition x-cloak>
+        <div class="card-header">
+            <h3 class="card-title">
+                Review Files
+                <small style="opacity:0.6;font-weight:normal" x-text="reviewFiles.length + ' file' + (reviewFiles.length !== 1 ? 's' : '')"></small>
+            </h3>
+            <div class="page-actions" style="gap:0.5rem">
+                <button class="btn btn-outline btn-xs" @click="loadReviewFiles()" :disabled="reviewLoading">
+                    <span class="spinner" x-show="reviewLoading" x-cloak></span> Refresh
+                </button>
+                <button class="btn btn-outline btn-xs" @click="reviewOpen = false">&times;</button>
+            </div>
+        </div>
+        <div x-show="reviewFiles.length === 0 && !reviewLoading" style="padding:1rem;text-align:center;opacity:0.5">
+            No files in Review
+        </div>
+        <div class="review-list">
+            <template x-for="(rf, idx) in reviewFiles" :key="rf.name + idx">
+                <div class="review-item">
+                    <div class="review-item-main">
+                        <div class="review-item-info">
+                            <span class="review-pipeline-badge" :class="'badge-' + rf.pipeline" x-text="rf.pipeline === 'shows' ? 'Series' : 'Movies'"></span>
+                            <template x-if="rf.editing">
+                                <input class="review-rename-input" type="text" x-model="rf.editName" @keydown.enter="submitRename(rf)" @keydown.escape="rf.editing = false" x-ref="renameInput">
+                            </template>
+                            <template x-if="!rf.editing">
+                                <span class="review-item-name" x-text="rf.name" :title="rf.name"></span>
+                            </template>
+                        </div>
+                        <div class="review-item-reason" x-show="rf.reason">
+                            <span class="review-reason-tag" x-text="rf.reason?.source || '?'"></span>
+                            <span x-text="rf.reason?.detail || ''"></span>
+                            <span class="review-confidence" x-show="rf.reason?.confidence !== undefined">
+                                Score: <strong x-text="rf.reason?.confidence + '%'"></strong>
+                                <small x-text="'(need ' + rf.reason?.threshold + '%)'"></small>
+                            </span>
+                            <span class="review-best-match" x-show="rf.reason?.best_match">
+                                Best match: <em x-text="rf.reason?.best_match"></em>
+                            </span>
+                        </div>
+                        <div class="review-item-reason" x-show="!rf.reason" style="opacity:0.4">
+                            No reason data (file was moved before .reason.json support)
+                        </div>
+                    </div>
+                    <div class="review-item-actions">
+                        <button class="btn btn-outline btn-xs" @click="previewReviewFile(rf)" :disabled="rf.busy" title="Preview video">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21"/></svg>
+                        </button>
+                        <button class="btn btn-outline btn-xs" @click="startRename(rf)" :disabled="rf.busy" title="Rename file to help matching">Rename</button>
+                        <button class="btn btn-outline btn-xs btn-success" x-show="rf.reason?.best_match" @click="approveReviewFile(rf)" :disabled="rf.busy" title="Approve match and send to library">Approve</button>
+                        <button class="btn btn-outline btn-xs btn-accent" @click="retryReviewFile(rf)" :disabled="rf.busy" title="Send back to pipeline">Retry</button>
+                        <button class="btn btn-outline btn-xs btn-danger" @click="trashReviewFile(rf)" :disabled="rf.busy" title="Move to Trash">Trash</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- ── Duplicates File Manager ── -->
+    <div class="card" x-show="dupOpen" x-transition x-cloak>
+        <div class="card-header">
+            <h3 class="card-title" style="color:var(--dup-color)">
+                Duplicates
+                <small style="opacity:0.6;font-weight:normal" x-text="dupFiles.length + ' file' + (dupFiles.length !== 1 ? 's' : '')"></small>
+            </h3>
+            <div class="page-actions" style="gap:0.5rem">
+                <button class="btn btn-outline btn-xs" @click="loadDupFiles()" :disabled="dupLoading">
+                    <span class="spinner" x-show="dupLoading" x-cloak></span> Refresh
+                </button>
+                <button class="btn btn-outline btn-xs" @click="dupOpen = false">&times;</button>
+            </div>
+        </div>
+        <div x-show="dupFiles.length === 0 && !dupLoading" style="padding:1rem;text-align:center;opacity:0.5">
+            No duplicate files
+        </div>
+        <div class="dup-list">
+            <template x-for="(df, idx) in dupFiles" :key="df.name + idx">
+                <div class="dup-card">
+                    <div class="dup-card-top">
+                        <div class="dup-card-title">
+                            <span class="review-pipeline-badge" :class="'badge-' + df.pipeline" x-text="df.pipeline === 'shows' ? 'Series' : 'Movies'"></span>
+                            <span class="dup-card-name" x-text="df.final_name" :title="df.final_name"></span>
+                            <span class="dup-size-badge" :class="df.new_size_mb > df.existing_size_mb ? 'dup-larger' : df.new_size_mb < df.existing_size_mb ? 'dup-smaller' : 'dup-same'"
+                                  x-text="df.new_size_mb > df.existing_size_mb ? 'LARGER' : df.new_size_mb < df.existing_size_mb ? 'SMALLER' : 'SAME SIZE'"></span>
+                        </div>
+                        <div class="dup-card-actions">
+                            <button class="btn btn-outline btn-xs" @click="previewDupFile(df)" :disabled="df.busy" title="Preview">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21"/></svg>
+                            </button>
+                            <button class="btn btn-outline btn-xs btn-accent" @click="replaceDup(df)" :disabled="df.busy">Replace</button>
+                            <button class="btn btn-outline btn-xs btn-danger" @click="deleteDup(df)" :disabled="df.busy">Delete</button>
+                        </div>
+                    </div>
+                    <div class="dup-card-files">
+                        <div class="dup-file-row">
+                            <span class="dup-file-label dup-file-current">Current</span>
+                            <span class="dup-file-size" x-text="df.existing_size_mb + ' MB'"></span>
+                            <span class="dup-file-path" x-text="df.existing_path" :title="df.existing_path"></span>
+                            <button class="dup-file-open dup-open-current" @click="openDupFolder(df, 'existing')" title="Library File">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            </button>
+                        </div>
+                        <div class="dup-file-row">
+                            <span class="dup-file-label dup-file-new">New</span>
+                            <span class="dup-file-size" x-text="df.new_size_mb + ' MB'"></span>
+                            <span class="dup-file-path" x-text="df.name" :title="df.name"></span>
+                            <button class="dup-file-open dup-open-new" @click="openDupFolder(df, 'dup')" title="Duplicate File">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- ── Video Preview Modal ── -->
+    <div class="modal-overlay" x-show="previewOpen" x-cloak @click.self="closePreview()" x-transition.opacity>
+        <div class="preview-modal">
+            <div class="preview-header">
+                <span class="preview-title" x-text="previewName"></span>
+                <button class="btn btn-outline btn-xs" @click="closePreview()">&times;</button>
+            </div>
+            <video class="preview-video" :src="previewSrc" controls autoplay x-show="previewSrc && !previewError">
+                Your browser does not support this video format.
+            </video>
+            <div class="preview-fallback" x-show="previewError">
+                <p>Browser cannot play this format.</p>
+                <button class="btn btn-primary btn-sm" @click="openReviewFolder()" style="margin-right:0.5rem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    Open in Explorer
+                </button>
+                <a :href="previewSrc" download class="btn btn-outline btn-sm">Download</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── File Tracking Panel ── -->
+    <div class="card" x-show="trackedTokens.length > 0" x-transition x-cloak>
+        <div class="card-header" style="padding-bottom:0">
+            <div class="track-tabs">
+                <button class="track-tab" :class="{ active: trackTab === 'active' }" @click="trackTab = 'active'">
+                    Tracked
+                    <span class="track-tab-count" x-show="activeTracked.length > 0" x-text="activeTracked.length"></span>
+                </button>
+                <button class="track-tab" :class="{ active: trackTab === 'final' }" @click="trackTab = 'final'">
+                    Final
+                    <span class="track-tab-count final-count" x-show="finalTracked.length > 0" x-text="finalTracked.length"></span>
+                </button>
+            </div>
+            <button class="btn btn-outline btn-xs" @click="clearTracked()" style="align-self:center">Clear All</button>
+        </div>
+
+        <!-- Active/Tracked tab -->
+        <div class="track-panel" x-show="trackTab === 'active'">
+            <template x-for="(tk, idx) in activeTracked" :key="tk.originalName + '-a-' + idx">
+                <div class="track-item track-tracking" :style="'border-left: 3px solid ' + getTrackColor(tk.colorIdx)">
+                    <span class="track-item-shape" :class="'shape-' + tk.type" :style="'background:' + getTrackColor(tk.colorIdx)"></span>
+                    <div class="track-item-info">
+                        <span class="track-item-name" x-text="tk.name"></span>
+                        <span class="track-item-stage stage-tracking" x-text="getTrackStageLabel(tk)"></span>
+                    </div>
+                    <button class="track-item-remove" @click="removeTrackedById(tk.originalName, 'tracking')">&times;</button>
+                </div>
+            </template>
+            <div class="track-empty" x-show="activeTracked.length === 0">
+                <span style="opacity:0.5;font-size:0.8rem">Click tokens in the pipeline to track files</span>
+            </div>
+        </div>
+
+        <!-- Final/Completed tab -->
+        <div class="track-panel" x-show="trackTab === 'final'">
+            <template x-for="(tk, idx) in finalTracked" :key="tk.originalName + '-f-' + idx">
+                <div class="track-item" :class="'track-' + tk.status">
+                    <span class="track-item-shape" :class="'shape-' + tk.type"></span>
+                    <div class="track-item-info">
+                        <div class="track-item-names">
+                            <span class="track-item-name" x-text="tk.name"></span>
+                            <span class="track-item-origin" x-show="tk.name !== tk.originalName" x-text="'from: ' + tk.originalName"></span>
+                        </div>
+                        <span class="track-item-stage" :class="'stage-' + tk.status" x-text="getTrackStageLabel(tk)"></span>
+                    </div>
+                    <button class="track-item-remove" @click="removeTrackedById(tk.originalName, tk.status)">&times;</button>
+                </div>
+            </template>
+            <div class="track-empty" x-show="finalTracked.length === 0">
+                <span style="opacity:0.5;font-size:0.8rem">Completed files will appear here</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disk Info -->
+    <div class="card" x-show="Object.keys(pipelineData.disk || {}).length > 0" x-cloak>
+        <div class="card-header">
+            <h3 class="card-title">Disk Usage</h3>
+        </div>
+        <div class="grid-3">
+            <template x-for="(info, name) in pipelineData.disk" :key="name">
+                <div>
+                    <strong x-text="name" style="font-size:0.85rem"></strong>
+                    <progress :value="info.used_percent" max="100"
+                              :class="{'danger': info.used_percent > 90}"
+                              style="margin:0.35rem 0"></progress>
+                    <small x-text="info.free_gb + ' GB free / ' + info.total_gb + ' GB total'"></small>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Dry Run (Test File) -->
+    <div class="card">
+        <div class="card-header" @click="dryRunOpen = !dryRunOpen" style="cursor:pointer">
+            <h3 class="card-title">Test File</h3>
+            <span x-text="dryRunOpen ? '▲' : '▼'" style="opacity:0.5"></span>
+        </div>
+        <div x-show="dryRunOpen" x-cloak style="padding:0.75rem 1rem">
+            <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+                <input type="text" x-model="dryRunInput" placeholder="Enter filename (e.g., Breaking.Bad.S01E01.720p.mkv)" style="flex:1;font-size:0.85rem" @keydown.enter="runDryRun()">
+                <button class="btn btn-accent btn-sm" @click="runDryRun()" :disabled="dryRunLoading || !dryRunInput.trim()">
+                    <span class="spinner" x-show="dryRunLoading" x-cloak></span>
+                    Test
+                </button>
+            </div>
+            <div x-show="dryRunResult" x-cloak class="info-banner" style="padding:0.75rem;font-size:0.85rem">
+                <div style="display:flex;flex-direction:column;gap:0.35rem;width:100%">
+                    <div><strong>Pipeline:</strong> <span x-text="dryRunResult?.pipeline"></span></div>
+                    <div><strong>Candidate:</strong> <span x-text="dryRunResult?.candidate"></span></div>
+                    <div x-show="dryRunResult?.match">
+                        <strong>Match:</strong> <span x-text="dryRunResult?.match?.title"></span>
+                        <span style="opacity:0.6" x-text="'(' + (dryRunResult?.match?.source || '') + ':' + (dryRunResult?.match?.source_id || '') + ')'"></span>
+                    </div>
+                    <div><strong>Confidence:</strong>
+                        <span :style="'font-weight:bold;color:' + (dryRunResult?.confidence >= 75 ? 'var(--success)' : dryRunResult?.confidence >= 50 ? 'var(--warning)' : 'var(--danger)')"
+                              x-text="dryRunResult?.confidence + '%'"></span>
+                    </div>
+                    <div x-show="dryRunResult?.match?.media_type"><strong>Type:</strong> <span x-text="dryRunResult?.match?.media_type"></span></div>
+                    <div x-show="dryRunResult?.predicted_name" style="margin-top:0.25rem;padding-top:0.25rem;border-top:1px solid var(--border)">
+                        <strong>Output:</strong> <span style="color:var(--success)" x-text="(dryRunResult?.predicted_path || '') + (dryRunResult?.predicted_name || '')"></span>
+                    </div>
+                    <div x-show="!dryRunResult?.match" style="color:var(--danger)">No match found</div>
+                </div>
+            </div>
+            <div x-show="dryRunError" x-cloak class="info-banner danger-banner" style="padding:0.5rem;font-size:0.85rem" x-text="dryRunError"></div>
+        </div>
+    </div>
+
+    <!-- Service Groups -->
+    <template x-for="group in groups" :key="group.id">
+        <div class="card">
+            <div class="card-header">
+                <div style="display:flex;align-items:center;gap:0.5rem">
+                    <h3 class="card-title" x-text="group.label"></h3>
+                    <small x-text="getGroupSummary(group.id)"></small>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-outline btn-xs" @click="startGroup(group.id)">Start</button>
+                    <button class="btn btn-outline btn-xs" @click="stopGroup(group.id)">Stop</button>
+                </div>
+            </div>
+            <div class="service-grid">
+                <template x-for="svc in getGroupServices(group.id)" :key="svc.id">
+                    <div class="service-card" :class="'status-' + svc.status">
+                        <div class="service-header">
+                            <span class="status-dot" :class="'dot-' + svc.status"></span>
+                            <strong x-text="svc.label"></strong>
+                        </div>
+                        <div class="service-info">
+                            <small x-show="svc.status === 'running'">
+                                PID: <span x-text="svc.pid"></span> |
+                                <span x-text="(svc.memory_mb || 0) + ' MB'"></span> |
+                                <span x-text="formatUptime(svc.uptime_seconds)"></span>
+                            </small>
+                            <small x-show="svc.status === 'stopped'" style="opacity: 0.5;">Stopped</small>
+                            <small x-show="svc.status === 'crashed'" class="error-text">
+                                Crashed (exit: <span x-text="svc.exit_code"></span>)
+                            </small>
+                        </div>
+                        <div class="service-actions">
+                            <button class="btn btn-outline btn-xs"
+                                    x-show="svc.status !== 'running'"
+                                    @click="startService(svc.id)">Start</button>
+                            <button class="btn btn-outline btn-xs"
+                                    x-show="svc.status === 'running'"
+                                    @click="stopService(svc.id)">Stop</button>
+                            <button class="btn btn-outline btn-xs"
+                                    x-show="svc.status === 'running'"
+                                    @click="restartService(svc.id)">Restart</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const _SKIP_RE = /\.(ctx|json|nfo|jpg|jpeg|png|srt|sub|idx|txt|sfv|nzb)$/i;
+const _ARCHIVE_RE = /\.(rar|zip|7z|tar|gz|bz2|r0[0-9])$/i;
+
+function dashboardApp() {
+    return {
+        services: {{ services | tojson }},
+        pipelineData: {{ pipeline | tojson }},
+        starting: false,
+        stopping: false,
+        restarting: false,
+        keyWarning: null,
+        setupStatus: null,
+        infraErrors: null,
+        expandedStage: null,
+        fileTokens: [],
+        _tokenId: 0,
+        _enterTimer: null,
+        _boomTimer: null,
+        extractMsg: null,
+        trackedTokens: [],
+        trackTab: 'active',
+        _nextColorIdx: 0,
+        _trackColors: ['#f472b6', '#38bdf8', '#fbbf24', '#c084fc', '#4ade80', '#fb923c', '#22d3ee', '#f87171'],
+
+        reviewOpen: false,
+        reviewFiles: [],
+        reviewLoading: false,
+        dupOpen: false,
+        dupFiles: [],
+        dupLoading: false,
+        dryRunOpen: false,
+        dryRunInput: '',
+        dryRunResult: null,
+        dryRunError: '',
+        dryRunLoading: false,
+        previewOpen: false,
+        previewSrc: '',
+        previewName: '',
+        previewError: false,
+
+        _stageFlow: {
+            'series:drop_shows': [['series','series_system_drop']],
+            'series:series_system_drop': [['series','series_processing']],
+            'series:series_processing': [['series','series_identify']],
+            'series:series_identify': [['series','staged_tv'], ['series','staged_cartoons'], ['series','staged_anime'], ['series','staged_reality'], ['series','staged_talkshow'], ['series','staged_docs'], ['review','review_shows']],
+            'series:staged_tv': [['duplicates','dup_shows']],
+            'series:staged_cartoons': [['duplicates','dup_shows']],
+            'series:staged_anime': [['duplicates','dup_shows']],
+            'series:staged_reality': [['duplicates','dup_shows']],
+            'series:staged_talkshow': [['duplicates','dup_shows']],
+            'series:staged_docs': [['duplicates','dup_shows']],
+            'review:review_shows': [['series','series_processing']],
+            'movies:drop_movies': [['movies','movies_system_drop']],
+            'movies:movies_system_drop': [['movies','movies_processing']],
+            'movies:movies_processing': [['movies','movies_staged']],
+            'movies:movies_staged': [['review','review_movies'], ['duplicates','dup_movies']],
+            'review:review_movies': [['movies','movies_processing']],
+        },
+
+        groups: [
+            { id: 'series', label: 'Series Pipeline' },
+            { id: 'movies', label: 'Movie Pipeline' },
+        ],
+
+        seriesStages: [
+            { id: 'series_system_drop', label: 'Intake', color: 'clr-intake' },
+            { id: 'series_processing', label: 'Processing', color: 'clr-processing' },
+            { id: 'series_identify', label: 'Identify', color: 'clr-identify', sideBranch: { id: 'review_shows', label: 'Review', pipe: 'review', type: 'warn' } },
+        ],
+        seriesBranches: [
+            { id: 'staged_tv', label: 'TV Shows', pipe: 'series', color: 'clr-tv', brClass: 'br-tv' },
+            { id: 'staged_cartoons', label: 'Cartoons', pipe: 'series', color: 'clr-cartoons', brClass: 'br-cartoons' },
+            { id: 'staged_anime', label: 'Anime', pipe: 'series', color: 'clr-anime', brClass: 'br-anime' },
+            { id: 'staged_reality', label: 'Reality TV', pipe: 'series', color: 'clr-reality', brClass: 'br-reality' },
+            { id: 'staged_talkshow', label: 'Talk Shows', pipe: 'series', color: 'clr-talkshow', brClass: 'br-talkshow' },
+            { id: 'staged_docs', label: 'Docs', pipe: 'series', color: 'clr-docs', brClass: 'br-docs' },
+        ],
+
+        movieStages: [
+            { id: 'movies_system_drop', label: 'Intake', color: 'clr-intake' },
+            { id: 'movies_processing', label: 'Processing', color: 'clr-processing' },
+            { id: 'movies_staged', label: 'Staged', color: 'clr-staged', sideBranch: { id: 'review_movies', label: 'Review', pipe: 'review', type: 'warn' } },
+        ],
+
+        get allRunning() {
+            return this.services.every(s => s.status === 'running');
+        },
+        get allStopped() {
+            return this.services.every(s => s.status === 'stopped');
+        },
+
+        initDashboard() {
+            fetch('/api/key-status').then(r => r.json()).then(data => {
+                if (!data.all_ready) this.keyWarning = data;
+            }).catch(() => {});
+            fetch('/api/health/setup-status').then(r => r.json()).then(data => {
+                this.setupStatus = data;
+            }).catch(() => {});
+
+            // Seed tokens from initial pipeline data
+            this.processSnapshot(this.pipelineData, true);
+
+            if (window._socket) {
+                window._socket.on('service_status', (data) => {
+                    this.services = data;
+                });
+                window._socket.on('pipeline_update', (data) => {
+                    this.pipelineData = data;
+                    this.processSnapshot(data, false);
+                });
+            }
+        },
+
+        getGroupServices(groupId) {
+            return this.services.filter(s => s.group === groupId);
+        },
+
+        getGroupSummary(groupId) {
+            const svcs = this.getGroupServices(groupId);
+            const running = svcs.filter(s => s.status === 'running').length;
+            return `${running}/${svcs.length} running`;
+        },
+
+        getStageCount(pipeline, stageId) {
+            const data = this.pipelineData[pipeline];
+            return data && data[stageId] ? data[stageId].count : 0;
+        },
+
+        getStageFiles(pipeline, stageId) {
+            const data = this.pipelineData[pipeline];
+            return data && data[stageId] && data[stageId].files ? data[stageId].files : [];
+        },
+
+        truncName(name) {
+            return name.length > 18 ? name.substring(0, 16) + '...' : name;
+        },
+
+        getReviewCount(stageId) {
+            const data = this.pipelineData.review;
+            return data && data[stageId] ? data[stageId].count : 0;
+        },
+
+        /* ── Token Diff Engine ── */
+        _getFileType(file) {
+            if (file.is_dir) return 'folder';
+            if (_SKIP_RE.test(file.name)) return 'skip';
+            if (_ARCHIVE_RE.test(file.name)) return 'archive';
+            return 'video';
+        },
+
+        processSnapshot(data, isInitial) {
+            const newMap = {};
+            const self = this;
+
+            function addFiles(pipeline, stageId, stageData) {
+                if (!stageData || !stageData.files) return;
+                stageData.files.forEach(f => {
+                    const type = self._getFileType(f);
+                    if (type === 'skip') return;
+                    const key = pipeline + ':' + stageId + ':' + f.name;
+                    const entry = { pipeline, stageId, name: f.name, size_mb: f.size_mb, type };
+                    if (f.ctx_source) entry.ctx_source = f.ctx_source;
+                    newMap[key] = entry;
+                });
+            }
+
+            if (data.series) Object.keys(data.series).forEach(sid => addFiles('series', sid, data.series[sid]));
+            if (data.movies) Object.keys(data.movies).forEach(sid => addFiles('movies', sid, data.movies[sid]));
+            if (data.review) Object.keys(data.review).forEach(sid => addFiles('review', sid, data.review[sid]));
+            if (data.duplicates) Object.keys(data.duplicates).forEach(sid => addFiles('duplicates', sid, data.duplicates[sid]));
+
+            // Build library lookup for final name resolution
+            const libraryFiles = [];
+            if (data.library) {
+                for (const sid in data.library) {
+                    const stage = data.library[sid];
+                    if (stage && stage.files) {
+                        stage.files.forEach(f => libraryFiles.push({ name: f.name }));
+                    }
+                }
+            }
+
+            const updatedTokens = [];
+            const existingKeys = new Set();
+
+            // Keep tokens that still exist, boom ones that vanished
+            this.fileTokens.forEach(t => {
+                if (t.anim === 'boom') return;
+                const key = t.pipeline + ':' + t.stageId + ':' + t.name;
+                if (newMap[key]) {
+                    existingKeys.add(key);
+                    updatedTokens.push({ ...t, anim: 'idle' });
+                } else if (!isInitial) {
+                    if (t.type === 'archive' && (t.stageId === 'series_system_drop' || t.stageId === 'movies_system_drop')) {
+                        this.showExtractPopup(t.pipeline + ':' + t.stageId);
+                    }
+                    updatedTokens.push({ ...t, anim: 'boom' });
+                }
+            });
+
+            // New files enter
+            for (const key in newMap) {
+                if (!existingKeys.has(key)) {
+                    const f = newMap[key];
+                    const tok = {
+                        id: 'tok-' + (++this._tokenId),
+                        pipeline: f.pipeline, stageId: f.stageId,
+                        name: f.name, size_mb: f.size_mb, type: f.type,
+                        anim: isInitial ? 'idle' : 'enter',
+                    };
+                    if (f.ctx_source) tok.ctx_source = f.ctx_source;
+                    updatedTokens.push(tok);
+                }
+            }
+
+            // ── Cross-stage tracking correlation (multi-token) ──
+            // Key: always match using originalName to prevent cross-contamination
+            // between simultaneously tracked files. Claimed sets prevent two
+            // tracked tokens from grabbing the same pipeline token or library file.
+            if (!isInitial) {
+                const allAlive = updatedTokens.filter(t => t.anim !== 'boom');
+                const _failedRev = ['review_shows', 'review_movies', 'dup_shows', 'dup_movies'];
+                const claimedIds = new Set();
+                const claimedLib = new Set();
+
+                this.trackedTokens = this.trackedTokens.map(tk => {
+                    if (tk.status !== 'tracking') return tk;
+                    const matchName = tk.originalName;
+
+                    if (tk.pending) {
+                        const p = tk.pending;
+                        const cands = updatedTokens.filter(t =>
+                            t.anim === 'enter' && !claimedIds.has(t.id) &&
+                            p.nextStages.some(ns => ns[0] === t.pipeline && ns[1] === t.stageId)
+                        );
+                        const sameExt = cands.filter(c => c.name.endsWith(p.ext));
+                        const pool = sameExt.length > 0 ? sameExt : cands;
+                        if (pool.length >= 1) {
+                            const best = this._bestMatch(pool, matchName);
+                            claimedIds.add(best.id);
+                            return { ...tk, id: best.id, name: best.name, pipeline: best.pipeline, stageId: best.stageId, pending: null };
+                        }
+                        const anywhere = allAlive.filter(t =>
+                            !claimedIds.has(t.id) && t.stageId !== tk.stageId &&
+                            this._wordOverlap(matchName, t.name) >= 2
+                        );
+                        if (anywhere.length >= 1) {
+                            const best = this._bestMatch(anywhere, matchName);
+                            claimedIds.add(best.id);
+                            return { ...tk, id: best.id, name: best.name, pipeline: best.pipeline, stageId: best.stageId, pending: null };
+                        }
+                        // CTX fallback for pending: check if extracted files link back
+                        const ctxPending = this._ctxMatch(allAlive, matchName, claimedIds);
+                        if (ctxPending.length >= 1) {
+                            const best = this._bestMatch(ctxPending, matchName);
+                            claimedIds.add(best.id);
+                            return { ...tk, id: best.id, name: best.name, pipeline: best.pipeline, stageId: best.stageId, pending: null };
+                        }
+                        p.cycles--;
+                        if (p.cycles <= 0) {
+                            const inFailed = allAlive.find(t =>
+                                !claimedIds.has(t.id) && _failedRev.includes(t.stageId) &&
+                                this._wordOverlap(matchName, t.name) >= 1
+                            );
+                            if (inFailed) {
+                                claimedIds.add(inFailed.id);
+                                return { ...tk, name: inFailed.name, stageId: inFailed.stageId, status: 'ended', pending: null, completedAt: Date.now() };
+                            }
+                            const libName = this._findInLibrary(libraryFiles, matchName, claimedLib);
+                            return { ...tk, name: libName, status: 'completed', pending: null, completedAt: Date.now() };
+                        }
+                        return tk;
+                    }
+
+                    const alive = updatedTokens.find(t => t.id === tk.id && t.anim !== 'boom');
+                    if (alive) { claimedIds.add(alive.id); return tk; }
+
+                    const boomed = updatedTokens.find(t => t.id === tk.id);
+                    if (!boomed) {
+                        const found = allAlive.filter(t =>
+                            !claimedIds.has(t.id) && this._wordOverlap(matchName, t.name) >= 2
+                        );
+                        if (found.length >= 1) {
+                            const best = this._bestMatch(found, matchName);
+                            claimedIds.add(best.id);
+                            return { ...tk, id: best.id, name: best.name, pipeline: best.pipeline, stageId: best.stageId };
+                        }
+                        const libName = this._findInLibrary(libraryFiles, matchName, claimedLib);
+                        return { ...tk, name: libName, status: 'completed', completedAt: Date.now() };
+                    }
+                    const sk = boomed.pipeline + ':' + boomed.stageId;
+                    const ns = this._stageFlow[sk] || [];
+                    if (ns.length === 0) {
+                        const libName = this._findInLibrary(libraryFiles, matchName, claimedLib);
+                        return { ...tk, name: libName, status: 'completed', completedAt: Date.now() };
+                    }
+                    const ext = boomed.name.substring(boomed.name.lastIndexOf('.'));
+                    const entries = updatedTokens.filter(t =>
+                        t.anim === 'enter' && !claimedIds.has(t.id) &&
+                        ns.some(n => n[0] === t.pipeline && n[1] === t.stageId)
+                    );
+                    if (entries.length >= 1) {
+                        const extMatch = entries.filter(e => e.name.endsWith(ext));
+                        const best = this._bestMatch(extMatch.length > 0 ? extMatch : entries, matchName);
+                        claimedIds.add(best.id);
+                        return { ...tk, id: best.id, name: best.name, pipeline: best.pipeline, stageId: best.stageId };
+                    }
+                    const global = allAlive.filter(t =>
+                        !claimedIds.has(t.id) && t.stageId !== boomed.stageId &&
+                        this._wordOverlap(matchName, t.name) >= 2
+                    );
+                    if (global.length >= 1) {
+                        const best = this._bestMatch(global, matchName);
+                        claimedIds.add(best.id);
+                        return { ...tk, id: best.id, name: best.name, pipeline: best.pipeline, stageId: best.stageId };
+                    }
+                    // CTX fallback: folder was extracted/flattened, contents have ctx_source linking back
+                    const ctxMatches = this._ctxMatch(allAlive, matchName, claimedIds);
+                    if (ctxMatches.length >= 1) {
+                        const best = this._bestMatch(ctxMatches, matchName);
+                        claimedIds.add(best.id);
+                        return { ...tk, id: best.id, name: best.name, pipeline: best.pipeline, stageId: best.stageId };
+                    }
+                    // Library stages (processor dirs): file moved to library, skip pending
+                    if (this._isLibraryStage(boomed.stageId)) {
+                        const libName = this._findInLibrary(libraryFiles, matchName, claimedLib);
+                        return { ...tk, name: libName, status: 'completed', completedAt: Date.now() };
+                    }
+                    return { ...tk, pending: { prevName: boomed.name, ext, nextStages: ns, cycles: 3 } };
+                });
+
+                // Auto-switch to Final tab when something completes
+                const justCompleted = this.trackedTokens.some(tk =>
+                    (tk.status === 'completed' || tk.status === 'ended') && tk.completedAt && (Date.now() - tk.completedAt) < 4000);
+                if (justCompleted && this.trackTab === 'active' && this.activeTracked.length === 0) {
+                    this.trackTab = 'final';
+                }
+
+                // Auto-clear completed items older than 5 minutes
+                const fiveMin = 5 * 60 * 1000;
+                this.trackedTokens = this.trackedTokens.filter(tk =>
+                    tk.status === 'tracking' || !tk.completedAt || (Date.now() - tk.completedAt) < fiveMin);
+            }
+
+            this.fileTokens = updatedTokens;
+
+            if (!isInitial) {
+                if (this._enterTimer) clearTimeout(this._enterTimer);
+                if (this._boomTimer) clearTimeout(this._boomTimer);
+                this._enterTimer = setTimeout(() => {
+                    this.fileTokens = this.fileTokens.map(t =>
+                        t.anim === 'enter' ? { ...t, anim: 'idle' } : t
+                    );
+                }, 600);
+                this._boomTimer = setTimeout(() => {
+                    this.fileTokens = this.fileTokens.filter(t => t.anim !== 'boom');
+                }, 700);
+            }
+        },
+
+        showExtractPopup(key) {
+            this.extractMsg = key;
+            setTimeout(() => { if (this.extractMsg === key) this.extractMsg = null; }, 2000);
+        },
+
+        getTokensForStage(pipeline, stageId) {
+            return this.fileTokens.filter(t => t.pipeline === pipeline && t.stageId === stageId);
+        },
+
+        tokClass(token, stageId) {
+            let cls = 'tok-' + token.type + ' anim-' + token.anim;
+            if (token.type === 'archive' && (stageId === 'series_system_drop' || stageId === 'movies_system_drop')) {
+                cls += ' extracting';
+            }
+            const tracked = this.trackedTokens.find(tk => tk.status === 'tracking' && tk.id === token.id);
+            if (tracked) {
+                cls += ' tracked tracked-' + tracked.colorIdx;
+            }
+            return cls;
+        },
+
+        trackToken(token) {
+            const idx = this.trackedTokens.findIndex(tk => tk.id === token.id && tk.status === 'tracking');
+            if (idx >= 0) {
+                this.trackedTokens.splice(idx, 1);
+            } else {
+                this.trackedTokens.push({
+                    id: token.id, name: token.name, pipeline: token.pipeline, stageId: token.stageId,
+                    type: token.type, status: 'tracking', originalName: token.name, pending: null,
+                    colorIdx: this._nextColorIdx++ % 8,
+                });
+            }
+        },
+
+        trackDropFile(pipeline, stageId, name) {
+            const existing = this.trackedTokens.findIndex(tk =>
+                tk.status === 'tracking' && tk.pipeline === pipeline && tk.stageId === stageId && tk.name === name);
+            if (existing >= 0) { this.trackedTokens.splice(existing, 1); return; }
+            const token = this.fileTokens.find(t => t.pipeline === pipeline && t.stageId === stageId && t.name === name);
+            if (token) {
+                this.trackedTokens.push({
+                    id: token.id, name: token.name, pipeline: token.pipeline, stageId: token.stageId,
+                    type: token.type, status: 'tracking', originalName: token.name, pending: null,
+                    colorIdx: this._nextColorIdx++ % 8,
+                });
+            }
+        },
+
+        isDropTracked(pipeline, stageId, name) {
+            return this.trackedTokens.some(tk =>
+                tk.status === 'tracking' && tk.pipeline === pipeline && tk.stageId === stageId && tk.name === name);
+        },
+
+        get activeTracked() {
+            return this.trackedTokens.filter(tk => tk.status === 'tracking');
+        },
+        get finalTracked() {
+            return this.trackedTokens.filter(tk => tk.status === 'completed' || tk.status === 'ended');
+        },
+
+        removeTrackedById(originalName, status) {
+            const idx = this.trackedTokens.findIndex(tk => tk.originalName === originalName && tk.status === status);
+            if (idx >= 0) this.trackedTokens.splice(idx, 1);
+        },
+        clearTracked() { this.trackedTokens = []; },
+
+        async runDryRun() {
+            if (!this.dryRunInput.trim()) return;
+            this.dryRunLoading = true;
+            this.dryRunResult = null;
+            this.dryRunError = '';
+            try {
+                const resp = await fetch('/api/dry-run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: this.dryRunInput.trim() })
+                });
+                const data = await resp.json();
+                if (data.error) { this.dryRunError = data.error; }
+                else { this.dryRunResult = data; }
+            } catch (e) {
+                this.dryRunError = 'Request failed: ' + e.message;
+            }
+            this.dryRunLoading = false;
+        },
+
+        _isLibraryStage(stageId) {
+            return ['staged_tv', 'staged_cartoons', 'staged_anime', 'staged_reality', 'staged_talkshow', 'staged_docs', 'movies_staged'].includes(stageId);
+        },
+
+        getTrackColor(idx) {
+            return this._trackColors[(idx || 0) % this._trackColors.length];
+        },
+
+        dropDotClass(f, isMovie) {
+            if (f.is_dir) return 'dot-folder';
+            if (_ARCHIVE_RE.test(f.name)) return 'dot-archive';
+            return isMovie ? 'dot-movie' : '';
+        },
+
+        getDropTrackStyle(pipeline, stageId, name) {
+            const tk = this.trackedTokens.find(t =>
+                t.status === 'tracking' && t.pipeline === pipeline && t.stageId === stageId && t.name === name);
+            if (!tk) return '';
+            const c = this._trackColors[tk.colorIdx % this._trackColors.length];
+            return 'box-shadow: 0 0 8px ' + c + '; border: 2px solid ' + c;
+        },
+
+        _findInLibrary(libraryFiles, originalName, claimed) {
+            let best = null, bestScore = 0;
+            // Extract SxxEyy and extension for strong cross-rename matching
+            const epMatch = originalName.match(/[Ss]\d{1,2}[Ee]\d{1,4}/);
+            const epTag = epMatch ? epMatch[0].toLowerCase() : null;
+            const extMatch = originalName.match(/\.\w{2,4}$/);
+            const ext = extMatch ? extMatch[0].toLowerCase() : null;
+            for (const lf of libraryFiles) {
+                if (claimed && claimed.has(lf.name)) continue;
+                let score = this._wordOverlap(originalName, lf.name);
+                // Boost: same episode tag + extension is strong signal
+                // (handles romaji→english renames like "Kimetsu no Yaiba" → "Demon Slayer")
+                if (epTag && ext) {
+                    const lfLower = lf.name.toLowerCase();
+                    if (lfLower.includes(epTag) && lfLower.endsWith(ext)) score += 3;
+                }
+                if (score > bestScore) { bestScore = score; best = lf; }
+            }
+            if (bestScore >= 2 && best) {
+                if (claimed) claimed.add(best.name);
+                return best.name;
+            }
+            return originalName;
+        },
+
+        _bestMatch(pool, prevName) {
+            let best = pool[0], bestScore = -1;
+            for (const c of pool) {
+                // CTX source_root match is highest priority
+                let score = this._wordOverlap(prevName, c.name);
+                if (c.ctx_source && this._wordOverlap(prevName, c.ctx_source) >= 2) {
+                    score += 10;  // Strong boost for CTX match
+                }
+                if (score > bestScore) { bestScore = score; best = c; }
+            }
+            return best;
+        },
+
+        _ctxMatch(tokens, trackedName, claimedIds) {
+            /* Find tokens whose ctx_source matches the tracked file's original name.
+               This handles folder→file tracking when AutoHarbor extracts/flattens. */
+            return tokens.filter(t =>
+                !claimedIds.has(t.id) && t.ctx_source &&
+                this._wordOverlap(trackedName, t.ctx_source) >= 2
+            );
+        },
+
+        _wordOverlap(a, b) {
+            const noise = new Set(['mkv','mp4','avi','mov','wmv','flv','webm','m4v',
+                '1080p','720p','480p','2160p','4k','x264','x265','h264','h265',
+                'hevc','aac','dts','ac3','bluray','webrip','web','hdtv','dvdrip',
+                'proper','repack','extended','remux','hdr','sdr','10bit']);
+            const wa = a.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/);
+            const wb = new Set(b.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/));
+            return wa.filter(w => wb.has(w) && w.length > 1 && !noise.has(w)).length;
+        },
+
+        getTrackStageLabel(tk) {
+            if (tk.status === 'completed') return 'Library';
+            if (tk.status === 'ended') return tk.stageId.includes('failed') ? 'Failed' : 'Review';
+            const labels = {
+                drop_shows: 'Drop Shows', drop_movies: 'Drop Movies',
+                series_system_drop: 'Intake', series_processing: 'Processing',
+                series_identify: 'Identify',
+                staged_tv: 'TV Shows', staged_cartoons: 'Cartoons', staged_anime: 'Anime',
+                staged_reality: 'Reality TV', staged_talkshow: 'Talk Shows', staged_docs: 'Docs',
+                movies_system_drop: 'Intake', movies_processing: 'Processing',
+                movies_staged: 'Staged',
+                review_shows: 'Review', review_movies: 'Review',
+                dup_shows: 'Duplicates', dup_movies: 'Duplicates',
+            };
+            return labels[tk.stageId] || tk.stageId;
+        },
+
+        /* ── Review File Manager ── */
+        openReviewPanel(stageId) {
+            this.reviewOpen = true;
+            this.loadReviewFiles();
+        },
+
+        previewReviewFile(rf) {
+            this.previewName = rf.name;
+            this.previewSrc = '/api/review/stream?name=' + encodeURIComponent(rf.name) + '&pipeline=' + encodeURIComponent(rf.pipeline);
+            this.previewError = false;
+            this.previewOpen = true;
+            this.$nextTick(() => {
+                const vid = document.querySelector('.preview-video');
+                if (vid) {
+                    vid.onerror = () => { this.previewError = true; };
+                }
+            });
+        },
+
+        closePreview() {
+            this.previewOpen = false;
+            this.previewSrc = '';
+            const vid = document.querySelector('.preview-video');
+            if (vid) { vid.pause(); vid.src = ''; }
+        },
+
+        async openReviewFolder() {
+            const rf = this.reviewFiles.find(f => f.name === this.previewName);
+            if (!rf) return;
+            try {
+                const resp = await fetch('/api/review/open-folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: rf.name, pipeline: rf.pipeline })
+                });
+                if (!resp.ok) window.toast.error('Could not open folder');
+            } catch (e) { window.toast.error('Could not open folder'); }
+        },
+
+        async loadReviewFiles() {
+            this.reviewLoading = true;
+            try {
+                const resp = await fetch('/api/review');
+                const data = await resp.json();
+                this.reviewFiles = (data.files || []).map(f => ({
+                    ...f, editing: false, editName: f.name, busy: false
+                }));
+            } catch (e) {
+                window.toast.error('Failed to load review files');
+            }
+            this.reviewLoading = false;
+        },
+
+        startRename(rf) {
+            rf.editName = rf.name;
+            rf.editing = true;
+            this.$nextTick(() => {
+                const input = this.$el.querySelector('.review-rename-input:last-of-type');
+                if (input) input.focus();
+            });
+        },
+
+        async submitRename(rf) {
+            const newName = rf.editName.trim();
+            if (!newName || newName === rf.name) { rf.editing = false; return; }
+            rf.busy = true;
+            try {
+                const resp = await fetch('/api/review/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: rf.name, new_name: newName, pipeline: rf.pipeline })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    rf.name = data.new_name;
+                    rf.editing = false;
+                    window.toast.success('Renamed');
+                } else {
+                    window.toast.error(data.error || 'Rename failed');
+                }
+            } catch (e) { window.toast.error('Rename failed'); }
+            rf.busy = false;
+        },
+
+        async retryReviewFile(rf) {
+            rf.busy = true;
+            try {
+                const resp = await fetch('/api/review/retry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: rf.name, pipeline: rf.pipeline })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.reviewFiles = this.reviewFiles.filter(f => f !== rf);
+                    // Auto-track the retried file through the pipeline
+                    const stageId = rf.pipeline === 'shows' ? 'series_processing' : 'movies_processing';
+                    const pipeline = rf.pipeline === 'shows' ? 'series' : 'movies';
+                    const ftype = _ARCHIVE_RE.test(rf.name) ? 'archive' : 'video';
+                    this.trackedTokens.push({
+                        id: 'retry-' + (++this._tokenId),
+                        name: rf.name, pipeline, stageId,
+                        type: ftype, status: 'tracking', originalName: rf.name,
+                        pending: { prevName: rf.name, ext: rf.name.substring(rf.name.lastIndexOf('.')), nextStages: [[pipeline, stageId]], cycles: 10 },
+                        colorIdx: this._nextColorIdx++ % 8,
+                    });
+                    this.trackTab = 'active';
+                    window.toast.success('Sent back to Processing — tracking started');
+                } else {
+                    window.toast.error(data.error || 'Retry failed');
+                }
+            } catch (e) { window.toast.error('Retry failed'); }
+            rf.busy = false;
+        },
+
+        async approveReviewFile(rf) {
+            rf.busy = true;
+            try {
+                const resp = await fetch('/api/review/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: rf.name, pipeline: rf.pipeline })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.reviewFiles = this.reviewFiles.filter(f => f !== rf);
+                    window.toast.success('Approved → ' + (data.final_name || data.destination));
+                } else {
+                    window.toast.error(data.error || 'Approve failed');
+                }
+            } catch (e) { window.toast.error('Approve failed'); }
+            rf.busy = false;
+        },
+
+        async trashReviewFile(rf) {
+            rf.busy = true;
+            try {
+                const resp = await fetch('/api/review/trash', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: rf.name, pipeline: rf.pipeline })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.reviewFiles = this.reviewFiles.filter(f => f !== rf);
+                    window.toast.success('Moved to Trash');
+                } else {
+                    window.toast.error(data.error || 'Trash failed');
+                }
+            } catch (e) { window.toast.error('Trash failed'); }
+            rf.busy = false;
+        },
+
+        openDuplicatesPanel() {
+            this.dupOpen = true;
+            this.loadDupFiles();
+        },
+
+        previewDupFile(df) {
+            this.previewName = df.name;
+            this.previewSrc = '/api/duplicates/stream?name=' + encodeURIComponent(df.name) + '&pipeline=' + encodeURIComponent(df.pipeline);
+            this.previewError = false;
+            this.previewOpen = true;
+            this.$nextTick(() => {
+                const vid = this.$el.querySelector('.preview-video');
+                if (vid) vid.onerror = () => { this.previewError = true; };
+            });
+        },
+
+        async openDupFolder(df, target) {
+            try {
+                const resp = await fetch('/api/duplicates/open-folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: df.name, pipeline: df.pipeline, target })
+                });
+                if (!resp.ok) window.toast.error('Could not open folder');
+            } catch (e) { window.toast.error('Could not open folder'); }
+        },
+
+        async loadDupFiles() {
+            this.dupLoading = true;
+            try {
+                const resp = await fetch('/api/duplicates');
+                const data = await resp.json();
+                this.dupFiles = (data || []).map(f => ({ ...f, busy: false }));
+            } catch (e) {
+                window.toast.error('Failed to load duplicates');
+            }
+            this.dupLoading = false;
+        },
+
+        async replaceDup(df) {
+            df.busy = true;
+            try {
+                const resp = await fetch('/api/duplicates/replace', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: df.name, pipeline: df.pipeline })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.dupFiles = this.dupFiles.filter(f => f !== df);
+                    window.toast.success('Replaced existing with duplicate');
+                } else {
+                    window.toast.error(data.error || 'Replace failed');
+                }
+            } catch (e) { window.toast.error('Replace failed'); }
+            df.busy = false;
+        },
+
+        async deleteDup(df) {
+            df.busy = true;
+            try {
+                const resp = await fetch('/api/duplicates/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: df.name, pipeline: df.pipeline })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    this.dupFiles = this.dupFiles.filter(f => f !== df);
+                    window.toast.success('Duplicate deleted');
+                } else {
+                    window.toast.error(data.error || 'Delete failed');
+                }
+            } catch (e) { window.toast.error('Delete failed'); }
+            df.busy = false;
+        },
+
+        formatUptime(seconds) {
+            if (!seconds) return '';
+            if (seconds < 60) return seconds + 's';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
+            return Math.floor(seconds / 3600) + 'h ' + Math.floor((seconds % 3600) / 60) + 'm';
+        },
+
+        async startService(id) {
+            const resp = await fetch(`/api/services/${id}/start`, { method: 'POST' });
+            if (!resp.ok) { const d = await resp.json(); window.toast.error(d.error || 'Failed to start'); }
+        },
+        async stopService(id) { await fetch(`/api/services/${id}/stop`, { method: 'POST' }); },
+        async restartService(id) {
+            const resp = await fetch(`/api/services/${id}/restart`, { method: 'POST' });
+            if (!resp.ok) { const d = await resp.json(); window.toast.error(d.error || 'Failed to restart'); }
+        },
+
+        async startAll() {
+            this.starting = true;
+            try {
+                const resp = await fetch('/api/services/start-all', { method: 'POST' });
+                const data = await resp.json();
+                if (!resp.ok && data.error === 'infrastructure') {
+                    this.showInfraError(data.issues);
+                } else if (!resp.ok && data.error) {
+                    window.toast.error(data.error, 12000);
+                } else if (Array.isArray(data)) {
+                    const blocked = data.filter(r => r.status === 'blocked');
+                    if (blocked.length > 0) {
+                        window.toast.warn(blocked.length + ' service(s) skipped — missing API keys. Check Settings > API Keys.');
+                    }
+                }
+            } catch (e) {}
+            this.starting = false;
+        },
+        async stopAll() {
+            this.stopping = true;
+            await fetch('/api/services/stop-all', { method: 'POST' });
+            this.stopping = false;
+        },
+        async restartAll() {
+            this.restarting = true;
+            try {
+                const resp = await fetch('/api/services/restart-all', { method: 'POST' });
+                const data = await resp.json();
+                if (!resp.ok && data.error === 'infrastructure') {
+                    this.showInfraError(data.issues);
+                } else if (Array.isArray(data)) {
+                    const blocked = data.filter(r => r.status === 'blocked');
+                    if (blocked.length > 0) {
+                        window.toast.warn(blocked.length + ' service(s) skipped — missing API keys. Check Settings > API Keys.');
+                    }
+                }
+            } catch (e) {}
+            this.restarting = false;
+        },
+        async startGroup(group) {
+            const resp = await fetch(`/api/services/group/${group}/start`, { method: 'POST' });
+            try {
+                const data = await resp.json();
+                if (Array.isArray(data)) {
+                    const blocked = data.filter(r => r.status === 'blocked');
+                    if (blocked.length > 0) {
+                        window.toast.warn(blocked.length + ' service(s) skipped — missing API keys.');
+                    }
+                }
+            } catch (e) {}
+        },
+        async stopGroup(group) { await fetch(`/api/services/group/${group}/stop`, { method: 'POST' }); },
+        showInfraError(issues) {
+            this.infraErrors = issues;
+        },
+        dismissInfraError() {
+            this.infraErrors = null;
+        },
+    };
+}
+</script>
+{% endblock %}
