@@ -1,0 +1,41 @@
+# Runtime
+cache/
+logs/
+__pycache__/
+*.pyc
+*.pyo
+
+# Media files
+*.mkv
+*.mp4
+*.avi
+*.mov
+
+# Pipeline working dirs
+.Work/
+Drop_Shows/
+Drop_Movies/
+Trash/
+Review/
+Duplicates/
+Library_Test/
+Test/
+Ambiguous/
+
+# Sensitive / local config
+.env
+config/config.json
+config/secrets.json
+
+# Dev files
+PLANS/
+DOCUMENTATION.md
+CLAUDE.md
+.claude/
+mymediamanager.bat
+recovery_backup_*/
+test_*.py
+tmpclaude-*
+
+# OS
+.DS_Store

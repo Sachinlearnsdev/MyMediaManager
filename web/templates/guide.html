@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Setup Guide - MyMediaManager{% endblock %}
+
+{% block content %}
+<div x-data="guideApp()" x-init="load()">
+    <div class="page-header">
+        <h2>Setup Guide</h2>
+        <div class="page-actions">
+            <button class="btn btn-sm" @click="load()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="guide-progress" x-show="steps.length > 0" x-cloak>
+        <div class="guide-progress-bar">
+            <div class="guide-progress-fill" :style="'width:' + Math.round(completed/total*100) + '%'"></div>
+        </div>
+        <span class="guide-progress-text" x-text="completed + '/' + total + ' steps complete'"></span>
+    </div>
+
+    <!-- All done banner -->
+    <div class="guide-done" x-show="allDone" x-cloak>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--success)" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <div>
+            <strong>All set!</strong> MyMediaManager is fully configured and ready to use.
+            Go to the <a href="/dashboard">Dashboard</a> to start your services.
+        </div>
+    </div>
+
+    <!-- Setup Steps -->
+    <div class="guide-steps">
+        <template x-for="step in steps" :key="step.id">
+            <div class="guide-step" :class="{'step-done': step.ok}">
+                <div class="step-icon">
+                    <template x-if="step.ok">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--success)" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </template>
+                    <template x-if="!step.ok">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text-muted)" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </template>
+                </div>
+                <div class="step-content">
+                    <div class="step-label" x-text="step.label"></div>
+                    <div class="step-hint" x-show="!step.ok" x-text="step.hint"></div>
+                    <!-- API key detail -->
+                    <div class="step-detail" x-show="step.detail && !step.ok">
+                        <template x-for="(configured, name) in step.detail || {}" :key="name">
+                            <span class="step-key-badge" :class="configured ? 'badge-ok' : 'badge-missing'">
+                                <span x-text="name.toUpperCase()"></span>
+                                <span x-text="configured ? 'OK' : 'missing'"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- How It Works -->
+    <div class="guide-section">
+        <h3>How MyMediaManager Works</h3>
+        <div class="guide-flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div>
+                    <strong>Drop files</strong>
+                    <p>Put TV shows in <code>Drop_Shows/</code> and movies in <code>Drop_Movies/</code>. Sonarr/Radarr can be configured to drop here automatically.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div>
+                    <strong>Pipeline processes</strong>
+                    <p>Files are automatically stabilized, extracted, routed, cleaned, classified, and matched against TVDB/TMDB/MAL APIs.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div>
+                    <strong>Library output</strong>
+                    <p>Matched files are renamed and sorted into 10 library categories, ready for Plex/Jellyfin to scan.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drop Folder Guide -->
+    <div class="guide-section">
+        <h3>Drop Folder Mapping</h3>
+        <div class="guide-table-wrap">
+            <table class="guide-table">
+                <thead><tr><th>Drop Folder</th><th>Categories</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td><code>Drop_Shows/</code></td>
+                        <td>TV Shows, Cartoons, Anime Series, Reality TV, Talk Shows, Documentary Series</td>
+                    </tr>
+                    <tr>
+                        <td><code>Drop_Movies/</code></td>
+                        <td>Movies, Anime Movies, Stand-Up Specials, Documentary Films</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Permissions -->
+    <div class="guide-section">
+        <h3>Permissions (Bare Metal)</h3>
+        <p>MyMediaManager uses the <strong>*arr pattern</strong>: a shared <code>media</code> group that Plex, Sonarr, Radarr, and MMM all belong to.</p>
+        <pre class="guide-code">sudo usermod -a -G media plex
+sudo usermod -a -G media sonarr
+sudo usermod -a -G media radarr</pre>
+        <p>All files are created with <code>775</code> permissions (group-writable) so any app in the media group can read/write them.</p>
+    </div>
+
+    <!-- Required API Keys -->
+    <div class="guide-section">
+        <h3>Required API Keys</h3>
+        <div class="guide-table-wrap">
+            <table class="guide-table">
+                <thead><tr><th>Key</th><th>Used By</th><th>Get It</th></tr></thead>
+                <tbody>
+                    <tr><td>TVDB</td><td>TV, Cartoons, Reality, Talk Shows, Docs, Classifier</td><td><a href="https://thetvdb.com/api-information" target="_blank">thetvdb.com</a></td></tr>
+                    <tr><td>TMDB</td><td>Movies (+ anime/standup/doc detection)</td><td><a href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org</a></td></tr>
+                    <tr><td>MAL</td><td>Anime, Classifier anime detection</td><td><a href="https://myanimelist.net/apiconfig" target="_blank">myanimelist.net</a></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="margin-top:0.75rem;color:var(--text-muted);font-size:0.85rem">
+            Free APIs (Jikan, AniList) work without keys. Optional keys: Trakt, OMDb, Fanart, IGDB.
+        </p>
+    </div>
+</div>
+
+<style>
+.guide-progress { display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; }
+.guide-progress-bar { flex:1; height:8px; background:var(--bg-elevated); border-radius:4px; overflow:hidden; }
+.guide-progress-fill { height:100%; background:var(--success); border-radius:4px; transition:width 0.4s ease; }
+.guide-progress-text { font-size:0.85rem; color:var(--text-muted); white-space:nowrap; }
+
+.guide-done { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.25); border-radius:8px; margin-bottom:1.5rem; }
+.guide-done a { color:var(--accent); text-decoration:underline; }
+
+.guide-steps { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:2rem; }
+.guide-step { display:flex; align-items:flex-start; gap:0.75rem; padding:0.875rem 1rem; background:var(--bg-card); border-radius:8px; border:1px solid var(--border); }
+.guide-step.step-done { opacity:0.65; }
+.step-icon { flex-shrink:0; width:24px; height:24px; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+.step-content { flex:1; }
+.step-label { font-weight:500; font-size:0.95rem; }
+.step-hint { font-size:0.82rem; color:var(--text-muted); margin-top:0.25rem; }
+.step-detail { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem; }
+.step-key-badge { display:inline-flex; align-items:center; gap:0.35rem; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:600; }
+.step-key-badge.badge-ok { background:rgba(34,197,94,0.15); color:var(--success); }
+.step-key-badge.badge-missing { background:rgba(239,68,68,0.15); color:var(--danger); }
+
+.guide-section { margin-bottom:2rem; }
+.guide-section h3 { font-size:1.1rem; margin-bottom:0.75rem; }
+.guide-section p { font-size:0.9rem; color:var(--text-secondary); line-height:1.6; }
+
+.guide-flow { display:flex; flex-direction:column; gap:0.75rem; }
+.flow-step { display:flex; gap:1rem; padding:0.75rem 1rem; background:var(--bg-card); border-radius:8px; border:1px solid var(--border); }
+.flow-num { flex-shrink:0; width:28px; height:28px; background:var(--accent); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; }
+.flow-step p { margin:0.25rem 0 0; font-size:0.85rem; color:var(--text-muted); }
+.flow-step code { font-size:0.82rem; padding:0.1rem 0.35rem; background:var(--bg-elevated); border-radius:3px; }
+
+.guide-table-wrap { overflow-x:auto; }
+.guide-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.guide-table th { text-align:left; padding:0.5rem 0.75rem; background:var(--bg-elevated); border-bottom:1px solid var(--border); font-weight:600; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-muted); }
+.guide-table td { padding:0.5rem 0.75rem; border-bottom:1px solid var(--border); }
+.guide-table a { color:var(--accent); }
+.guide-table code { font-size:0.82rem; padding:0.1rem 0.35rem; background:var(--bg-elevated); border-radius:3px; }
+
+.guide-code { background:var(--bg-elevated); padding:0.75rem 1rem; border-radius:6px; font-size:0.82rem; overflow-x:auto; border:1px solid var(--border); margin:0.75rem 0; }
+</style>
+
+<script>
+function guideApp() {
+    return {
+        steps: [],
+        completed: 0,
+        total: 0,
+        allDone: false,
+
+        async load() {
+            try {
+                const res = await fetch('/api/health/setup-status');
+                const data = await res.json();
+                this.steps = data.steps;
+                this.completed = data.completed;
+                this.total = data.total;
+                this.allDone = data.all_done;
+            } catch (e) {
+                console.error('Failed to load setup status:', e);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

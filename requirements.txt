@@ -1,0 +1,7 @@
+requests>=2.28.0
+flask>=3.0
+flask-socketio>=5.3
+python-socketio>=5.10
+gevent>=24.0
+gevent-websocket>=0.10
+psutil>=5.9

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Recovery - MyMediaManager{% endblock %}
+
+{% block content %}
+<div x-data="recoveryApp()">
+    <div class="page-header">
+        <h2>System Recovery</h2>
+    </div>
+
+
+    <!-- Stuck Files Overview -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Currently Stuck Files</h3>
+        </div>
+        <div class="grid-3">
+            <div>
+                <h4 style="font-size:0.9rem;margin-bottom:0.5rem">Processing (<span x-text="stuck.processing.length"></span>)</h4>
+                <p style="opacity:0.5;font-size:0.85rem" x-show="stuck.processing.length === 0">No stuck files</p>
+                <template x-for="f in stuck.processing" :key="f.path">
+                    <div class="stuck-file">
+                        <span x-text="f.name"></span>
+                        <span class="badge" x-text="f.pipeline"></span>
+                    </div>
+                </template>
+            </div>
+            <div>
+                <h4 style="font-size:0.9rem;margin-bottom:0.5rem">Failed (<span x-text="stuck.failed.length"></span>)</h4>
+                <p style="opacity:0.5;font-size:0.85rem" x-show="stuck.failed.length === 0">No failed files</p>
+                <template x-for="f in stuck.failed" :key="f.path">
+                    <div class="stuck-file">
+                        <span x-text="f.name"></span>
+                        <span class="badge" x-text="f.pipeline"></span>
+                    </div>
+                </template>
+            </div>
+            <div>
+                <h4 style="font-size:0.9rem;margin-bottom:0.5rem">Review (<span x-text="stuck.review.length"></span>)</h4>
+                <p style="opacity:0.5;font-size:0.85rem" x-show="stuck.review.length === 0">No review files</p>
+                <template x-for="f in stuck.review" :key="f.path">
+                    <div class="stuck-file">
+                        <span x-text="f.name"></span>
+                        <span class="badge" x-text="f.pipeline"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recovery Actions -->
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Flush Stuck Files</h3>
+            </div>
+            <p class="settings-desc">Move files from Processing back to Drop (re-enter pipeline).</p>
+            <select x-model="pipeline" style="margin-bottom:0.75rem">
+                <option value="both">Both Pipelines</option>
+                <option value="series">Series Only</option>
+                <option value="movies">Movies Only</option>
+            </select>
+            <button class="btn btn-primary btn-sm" @click="flushStuck()" :disabled="workingAction !== ''">
+                <span class="spinner" x-show="workingAction === 'flush'" x-cloak></span>
+                Flush Stuck
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Retry Failed</h3>
+            </div>
+            <p class="settings-desc">Move files from Failed back to Drop for reprocessing.</p>
+            <select x-model="pipeline" style="margin-bottom:0.75rem">
+                <option value="both">Both Pipelines</option>
+                <option value="series">Series Only</option>
+                <option value="movies">Movies Only</option>
+            </select>
+            <button class="btn btn-primary btn-sm" @click="retryFailed()" :disabled="workingAction !== ''">
+                <span class="spinner" x-show="workingAction === 'retry-failed'" x-cloak></span>
+                Retry Failed
+            </button>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Retry Review</h3>
+            </div>
+            <p class="settings-desc">Move all review files back to Processing for re-classification.</p>
+            <button class="btn btn-primary btn-sm" @click="retryReview()" :disabled="workingAction !== ''">
+                <span class="spinner" x-show="workingAction === 'retry-review'" x-cloak></span>
+                Retry Review
+            </button>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;justify-content:center;opacity:0.4">
+            <p class="settings-desc" style="margin:0;text-align:center">Cache clearing and folder cleanup moved to <a href="/settings" style="color:var(--accent)">Settings &rarr; General &rarr; Maintenance</a></p>
+        </div>
+    </div>
+
+    <!-- Nuclear Reset -->
+    <div class="card nuclear-section">
+        <div class="card-header">
+            <h3 class="card-title" style="color:var(--danger)">Nuclear Reset</h3>
+        </div>
+        <p class="settings-desc">Stop all services, backup all Work/ data, recreate empty pipeline structure, restart everything.
+           This is the last resort. All in-progress files will be backed up (not deleted).</p>
+        <button class="btn btn-danger btn-sm"
+                @click="confirmNuclear = true"
+                :disabled="workingAction !== ''"
+                x-show="!confirmNuclear">
+            Nuclear Reset
+        </button>
+        <div x-show="confirmNuclear" x-cloak style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+            <span style="color:var(--danger);font-weight:600">Are you sure? This will stop all services and reset the pipeline.</span>
+            <button class="btn btn-primary btn-sm" @click="confirmNuclear = false; nuclearReset()" :disabled="workingAction !== ''"
+                    style="background:var(--danger);border-color:var(--danger)">
+                <span class="spinner" x-show="workingAction === 'nuclear'" x-cloak></span>
+                Yes, Reset
+            </button>
+            <button class="btn btn-outline btn-sm" @click="confirmNuclear = false">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function recoveryApp() {
+    return {
+        stuck: {{ stuck | tojson }},
+        pipeline: 'both',
+        workingAction: '',
+        confirmNuclear: false,
+
+        async doAction(action, url, body = {}) {
+            this.workingAction = action;
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await resp.json();
+                if (data.error) {
+                    window.toast.error(data.error);
+                } else {
+                    let msg = action;
+                    if (data.count !== undefined) msg += ': ' + data.count + ' files moved';
+                    else if (data.deleted !== undefined) msg += ': ' + data.deleted + ' items deleted';
+                    else msg += ': Done';
+                    if (data.backup_path) msg += ' | Backup: ' + data.backup_path;
+                    window.toast.success(msg);
+                }
+                await this.refreshStuck();
+            } catch (e) {
+                window.toast.error('Network error: ' + e.message);
+            }
+            this.workingAction = '';
+        },
+
+        flushStuck() { this.doAction('flush', '/api/recovery/flush', { pipeline: this.pipeline }); },
+        retryFailed() { this.doAction('retry-failed', '/api/recovery/retry-failed', { pipeline: this.pipeline }); },
+        retryReview() { this.doAction('retry-review', '/api/recovery/retry-review', { pipeline: this.pipeline }); },
+        nuclearReset() { this.doAction('nuclear', '/api/recovery/nuclear'); },
+
+        async refreshStuck() {
+            try {
+                const resp = await fetch('/api/recovery/stuck');
+                this.stuck = await resp.json();
+            } catch (e) {}
+        },
+    };
+}
+</script>
+{% endblock %}

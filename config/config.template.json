@@ -1,0 +1,100 @@
+{
+  "api_config": {
+    "anime": { "search": ["mal","jikan","anilist"], "episode_titles": ["jikan","anilist"], "sequel_chain": ["mal","jikan"] },
+    "tv": { "search": ["tvdb"], "episode_titles": ["tvdb"] },
+    "cartoons": { "search": ["tvdb"], "episode_titles": ["tvdb"] },
+    "reality": { "search": ["tvdb"], "episode_titles": ["tvdb"] },
+    "talkshow": { "search": ["tvdb"], "episode_titles": ["tvdb"] },
+    "documentaries": { "search": ["tvdb"], "episode_titles": ["tvdb"] },
+    "movies": { "search": ["tmdb"] },
+    "classifier": { "anime_check": ["mal","jikan"], "tv_check": ["tvdb"] }
+  },
+  "api_keys": {},
+  "cache": {
+    "api_cache_ttl_hours": 24,
+    "show_cache_ttl_hours": 720,
+    "root": "cache",
+    "show_cache_file": "cache/show_cache.json",
+    "noise_learned_file": "cache/learned_noise.json"
+  },
+  "flow_control": {
+    "series_quota_gb": 100,
+    "movies_quota_gb": 100,
+    "min_ssd_free_gb": 10
+  },
+  "logging": {
+    "level": "INFO",
+    "path": "logs",
+    "retention_sessions": 5
+  },
+  "paths": {
+    "roots": {
+      "manager": "/opt/mymediamanager/app",
+      "data": "",
+      "library": ""
+    },
+    "series_pipeline": {
+      "input_drop": "Drop_Shows",
+      "system_drop": ".Work/Shows/Intake",
+      "system_home": ".Work/Shows",
+      "processing": ".Work/Shows/Processing",
+      "failed": ".Work/Shows/Failed",
+      "review": "Review/Shows",
+      "duplicates": "Duplicates/Shows",
+      "staged": {
+        "identify": ".Work/Shows/Staged/Identify",
+        "tv": ".Work/Shows/Staged/TV_Shows",
+        "cartoons": ".Work/Shows/Staged/Cartoons",
+        "anime": ".Work/Shows/Staged/Anime",
+        "reality": ".Work/Shows/Staged/Reality",
+        "talkshow": ".Work/Shows/Staged/TalkShows",
+        "documentaries": ".Work/Shows/Staged/Documentaries"
+      }
+    },
+    "movie_pipeline": {
+      "input_drop": "Drop_Movies",
+      "system_drop": ".Work/Movies/Intake",
+      "system_home": ".Work/Movies",
+      "processing": ".Work/Movies/Processing",
+      "failed": ".Work/Movies/Failed",
+      "review": "Review/Movies",
+      "duplicates": "Duplicates/Movies",
+      "staged": {
+        "movies": ".Work/Movies/Staged"
+      }
+    },
+    "output": {
+      "tv": "TV Shows",
+      "cartoons": "Cartoons",
+      "anime_shows": "Anime/Shows",
+      "anime_movies": "Anime/Movies",
+      "movies": "Movies",
+      "reality": "Reality TV",
+      "talkshow": "Talk Shows",
+      "documentaries_series": "Documentaries/Series",
+      "documentaries_movies": "Documentaries/Movies",
+      "standup": "Stand-Up"
+    },
+    "trash_root": "Trash"
+  },
+  "tuning": {
+    "scan_interval": 5,
+    "extract_timeout": 300,
+    "mouse_scan_interval": 2,
+    "mouse_stability_scans": 4,
+    "mouse_batch_settle": 15,
+    "confidence_classifier": 40,
+    "confidence_tv": 60,
+    "confidence_cartoon": 60,
+    "confidence_movie": 75,
+    "trash_max_age_days": 7,
+    "review_max_age_days": 14
+  },
+  "web_panel": {
+    "port": 8888,
+    "host": "0.0.0.0",
+    "session_timeout_hours": 24,
+    "password_hash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+    "api_key": ""
+  }
+}
