@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Web Control Panel for MyMediaManager.
+Web Control Panel for MyMediaManager v2.0
 Launch: python webpanel.py
 """
 

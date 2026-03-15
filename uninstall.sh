@@ -1,6 +1,6 @@
 #!/bin/bash
 # ──────────────────────────────────────────────
-# MyMediaManager - Uninstaller
+# MyMediaManager - Uninstaller (v2.0)
 # ──────────────────────────────────────────────
 set -e
 

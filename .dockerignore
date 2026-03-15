@@ -16,10 +16,14 @@ config/secrets.json
 # Dev/test files
 test/
 Test/
+Test.mp3
 Work/
+Library/
 Library_Test/
 Drop_Shows/
 Drop_Movies/
+Drop_Music/
+Drop_Books/
 Trash/
 Review/
 Duplicates/
@@ -29,11 +33,10 @@ recovery_backup_*/
 test_*.py
 tmpclaude-*
 
-# Docker compose (not needed inside image)
+# Not needed inside image
 docker/docker-compose.yml
-docker/install.sh
-docker/uninstall.sh
-docker/README.md
+install.sh
+uninstall.sh
 
 # Python caches
 __pycache__/
