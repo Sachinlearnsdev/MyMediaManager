@@ -37,6 +37,7 @@ fi
 mkdir -p /app/cache/tv /app/cache/anime /app/cache/movies
 mkdir -p /app/cache/cartoons /app/cache/classifier
 mkdir -p /app/cache/reality /app/cache/talkshow /app/cache/documentaries
+mkdir -p /app/cache/music /app/cache/audiobooks /app/cache/books /app/cache/comics /app/cache/manga
 mkdir -p /app/logs
 
 # ──────────────────────────────────────────────

@@ -21,24 +21,35 @@
         </div>
     </div>
 
-    <!-- Overview Cards -->
-    <div class="lib-overview-grid">
-        <template x-for="(cat, id) in data.categories" :key="id">
-            <button class="lib-overview-card" :class="{ active: activeCategory === id }"
-                    @click="activeCategory = (activeCategory === id ? null : id)">
-                <div class="lib-ov-color" :style="'background:' + cat.color"></div>
-                <div class="lib-ov-body">
-                    <div class="lib-ov-label" x-text="cat.label"></div>
-                    <div class="lib-ov-stats">
-                        <span class="lib-ov-total" x-text="cat.total_files + ' files'"></span>
-                        <span class="lib-ov-new" x-show="cat.new_files > 0"
-                              x-text="cat.new_files + ' new'"></span>
-                    </div>
-                </div>
-                <div class="lib-ov-count" x-text="cat.entries.length">0</div>
-            </button>
-        </template>
-    </div>
+    <!-- Overview Cards — grouped by library -->
+    <template x-for="group in libraryGroups" :key="group.key">
+        <div class="lib-group">
+            <div class="lib-group-header">
+                <span class="lib-group-dot" :style="'background:' + group.color"></span>
+                <span class="lib-group-title" x-text="group.label"></span>
+                <span class="lib-group-count" x-text="groupFileCount(group) + ' files'"></span>
+            </div>
+            <div class="lib-overview-grid">
+                <template x-for="id in group.cats" :key="id">
+                    <template x-if="data.categories[id]">
+                        <button class="lib-overview-card" :class="{ active: activeCategory === id }"
+                                @click="activeCategory = (activeCategory === id ? null : id)">
+                            <div class="lib-ov-color" :style="'background:' + data.categories[id].color"></div>
+                            <div class="lib-ov-body">
+                                <div class="lib-ov-label" x-text="data.categories[id].label"></div>
+                                <div class="lib-ov-stats">
+                                    <span class="lib-ov-total" x-text="data.categories[id].total_files + ' files'"></span>
+                                    <span class="lib-ov-new" x-show="data.categories[id].new_files > 0"
+                                          x-text="data.categories[id].new_files + ' new'"></span>
+                                </div>
+                            </div>
+                            <div class="lib-ov-count" x-text="data.categories[id].entries.length">0</div>
+                        </button>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </template>
 
     <!-- Empty state -->
     <div class="card" x-show="!activeCategory && !loading" style="text-align:center;padding:3rem">
@@ -193,9 +204,21 @@
 
 {% block scripts %}
 <style>
+/* ── Library Group Header ── */
+.lib-group { margin-bottom: 1.25rem; }
+.lib-group-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 0.5rem; padding: 0.4rem 0.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.lib-group-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.lib-group-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+.lib-group-count { font-size: 0.7rem; color: var(--text-muted); margin-left: auto; }
+[data-theme="light"] .lib-group-header { border-bottom-color: var(--border); }
+
 /* ── Library Overview Grid ── */
 .lib-overview-grid {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; margin-bottom: 1.25rem;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem;
 }
 .lib-overview-card {
     display: flex; align-items: center; gap: 0.65rem;
@@ -326,6 +349,22 @@ function libraryApp() {
         displayLimit: 100,
         newHours: '24',
 
+        libraryGroups: [
+            {
+                key: 'video', label: 'Shows & Movies', color: '#4fc3f7',
+                cats: ['tv', 'movies', 'anime_shows', 'anime_movies', 'cartoons',
+                       'reality', 'talkshow', 'docs_series', 'docs_movies', 'standup']
+            },
+            {
+                key: 'audio', label: 'Audio & Music', color: '#22d3ee',
+                cats: ['music', 'audiobooks']
+            },
+            {
+                key: 'reading', label: 'Books & Comics', color: '#a78bfa',
+                cats: ['books', 'comics', 'manga']
+            }
+        ],
+
         init() {
             this.refresh();
         },
@@ -364,6 +403,13 @@ function libraryApp() {
                 });
             }
             return entries;
+        },
+
+        groupFileCount(group) {
+            return group.cats.reduce((sum, id) => {
+                const cat = this.data.categories[id];
+                return sum + (cat ? cat.total_files : 0);
+            }, 0);
         },
 
         toggleFolder(name) {

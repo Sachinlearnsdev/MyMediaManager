@@ -115,15 +115,21 @@
                 <span class="tok-legend-item"><span class="tok tok-video" style="width:10px;height:10px"></span> Video</span>
                 <span class="tok-legend-item"><span class="tok tok-folder" style="width:10px;height:10px"></span> Folder</span>
                 <span class="tok-legend-item"><span class="tok tok-archive" style="width:11px;height:11px"></span> Archive</span>
+                <span class="tok-legend-item"><span class="tok tok-audio" style="width:10px;height:10px"></span> Audio</span>
+                <span class="tok-legend-item"><span class="tok tok-book" style="width:10px;height:10px"></span> Book</span>
             </div>
         </div>
 
-        <div class="pipeline-columns">
-            <!-- Series Pipeline Column -->
-            <div class="pipeline-col col-series">
-                <div class="pipeline-col-title">Series Pipeline</div>
+        <!-- ═══ SERIES — Horizontal Swimlane ═══ -->
+        <div class="hflow-lane hflow-series" :class="{ 'hflow-collapsed': laneCollapsed.series }">
+            <div class="hflow-title" @click="toggleLane('series')">
+                <svg class="hflow-chevron" :class="{ open: !laneCollapsed.series }" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+                Series Pipeline
+                <span class="hflow-status-dot" :class="isPipelineRunning('series') ? 'dot-running' : 'dot-stopped'"></span>
+            </div>
+            <div class="hflow-track" x-show="!laneCollapsed.series" x-transition.duration.200ms x-cloak>
                 <!-- Drop Shows -->
-                <div class="vflow-node vflow-entry">
+                <div class="hflow-node">
                     <div class="flow-track-box flow-entry-box" :class="{ active: getStageCount('series','drop_shows') > 0 }">
                         <template x-for="f in getStageFiles('series','drop_shows').slice(0,10)" :key="f.name">
                             <span class="intake-dot" :class="[dropDotClass(f), { tracked: isDropTracked('series','drop_shows',f.name) }]" :style="getDropTrackStyle('series','drop_shows',f.name)" :title="f.name + (f.size_mb ? ' (' + f.size_mb + ' MB)' : '')" @click.stop="trackDropFile('series','drop_shows',f.name)"></span>
@@ -132,16 +138,14 @@
                               x-text="'+' + (getStageFiles('series','drop_shows').length - 10)"></span>
                         <span class="flow-track-empty" x-show="getStageCount('series','drop_shows') === 0">&mdash;</span>
                     </div>
-                    <div class="vflow-label">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="vertical-align:-1px"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><polyline points="16 2 12 6 8 2"/></svg>
-                        Drop Shows
-                    </div>
+                    <div class="hflow-label">Drop</div>
                 </div>
-                <!-- Stages: Intake → Processing → Identify -->
-                <template x-for="stage in seriesStages" :key="stage.id">
-                    <div class="vflow-stage-wrap">
-                        <div class="vflow-pipe" :class="{ active: getTokensForStage('series', stage.id).length > 0 }"></div>
-                        <div class="vflow-node">
+                <div class="hflow-pipe" :class="{ active: getStageCount('series','drop_shows') > 0 }"></div>
+                <!-- Stages -->
+                <template x-for="(stage, idx) in seriesStages" :key="stage.id">
+                    <div class="hflow-stage-group">
+                        <div class="hflow-pipe" :class="{ active: getTokensForStage('series', stage.id).length > 0 }" x-show="idx > 0"></div>
+                        <div class="hflow-node">
                             <div class="flow-track-box" :class="[stage.color, { active: getTokensForStage('series', stage.id).length > 0 }]">
                                 <template x-for="token in getTokensForStage('series', stage.id).slice(0,10)" :key="token.id">
                                     <div class="tok" :class="tokClass(token, stage.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
@@ -151,34 +155,29 @@
                                 <span class="flow-track-empty" x-show="getTokensForStage('series', stage.id).length === 0">&mdash;</span>
                                 <span class="extract-msg" x-show="extractMsg === 'series:' + stage.id" x-transition x-cloak>Extracted!</span>
                             </div>
-                            <div class="vflow-label" x-text="stage.label"></div>
+                            <div class="hflow-label" x-text="stage.label"></div>
+                            <!-- Side branch below -->
                             <template x-if="stage.sideBranch">
-                                <div class="vflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
-                                    <div class="side-connector"></div>
-                                    <div class="side-branch-wrap">
-                                        <svg class="side-return-arrow" viewBox="0 0 30 70" fill="none" title="Retry sends back to Processing">
-                                            <path d="M22 68 Q22 12, 6 4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/>
-                                            <path d="M2 10 L6 2 L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                        <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
-                                            <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
-                                                <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
-                                            </template>
-                                            <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
-                                                  x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
-                                        </div>
-                                        <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
+                                <div class="hflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
+                                    <div class="hflow-side-pipe"></div>
+                                    <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
+                                        <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
+                                            <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                        </template>
+                                        <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
+                                              x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
                                     </div>
+                                    <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
                                 </div>
                             </template>
                         </div>
                     </div>
                 </template>
-                <!-- Branch: TV Shows / Cartoons / Anime -->
-                <div class="vflow-pipe" :class="{ active: seriesBranches.some(b => getTokensForStage(b.pipe, b.id).length > 0) }"></div>
-                <div class="vflow-branches" :class="{ 'has-active': seriesBranches.some(b => getTokensForStage(b.pipe, b.id).length > 0) }">
+                <!-- Pipe → Branches -->
+                <div class="hflow-pipe" :class="{ active: seriesBranches.some(b => getTokensForStage(b.pipe, b.id).length > 0) }"></div>
+                <div class="hflow-branches">
                     <template x-for="branch in seriesBranches" :key="branch.id">
-                        <div class="vflow-branch-item" :class="branch.brClass">
+                        <div class="hflow-branch-item" :class="branch.brClass">
                             <div class="flow-track-box" :class="[branch.color, { active: getTokensForStage(branch.pipe, branch.id).length > 0 }]">
                                 <template x-for="token in getTokensForStage(branch.pipe, branch.id).slice(0,10)" :key="token.id">
                                     <div class="tok" :class="tokClass(token, branch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
@@ -187,16 +186,16 @@
                                       x-text="'+' + (getTokensForStage(branch.pipe, branch.id).length - 10)"></span>
                                 <span class="flow-track-empty" x-show="getTokensForStage(branch.pipe, branch.id).length === 0">&mdash;</span>
                             </div>
-                            <span class="vflow-branch-label" x-text="branch.label"></span>
+                            <span class="hflow-branch-label" x-text="branch.label"></span>
                         </div>
                     </template>
                 </div>
-                <!-- Library destination -->
-                <div class="vflow-pipe short"></div>
-                <div class="vflow-node">
+                <!-- Library + Dup -->
+                <div class="hflow-pipe"></div>
+                <div class="hflow-node hflow-end">
                     <a href="/library" class="vflow-dest">Library</a>
-                    <div class="vflow-side side-dup" x-show="getTokensForStage('duplicates','dup_shows').length > 0 || dupFiles.filter(f => f.pipeline === 'shows').length > 0" x-cloak>
-                        <div class="side-connector"></div>
+                    <div class="hflow-dup-badge" x-show="getTokensForStage('duplicates','dup_shows').length > 0 || dupFiles.filter(f => f.pipeline === 'shows').length > 0" x-cloak>
+                        <div class="hflow-side-pipe" style="background:linear-gradient(180deg,rgba(56,189,248,0.4),rgba(56,189,248,0.15))"></div>
                         <div class="flow-track-box" :class="{ active: getTokensForStage('duplicates','dup_shows').length > 0 }">
                             <template x-for="token in getTokensForStage('duplicates','dup_shows').slice(0,10)" :key="token.id">
                                 <div class="tok" :class="tokClass(token, 'dup_shows')" :title="token.name" @click.stop="trackToken(token)"></div>
@@ -207,12 +206,18 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Movies Pipeline Column -->
-            <div class="pipeline-col col-movies">
-                <div class="pipeline-col-title">Movies Pipeline</div>
+        <!-- ═══ MOVIES — Horizontal Swimlane ═══ -->
+        <div class="hflow-lane hflow-movies" :class="{ 'hflow-collapsed': laneCollapsed.movies }">
+            <div class="hflow-title" @click="toggleLane('movies')">
+                <svg class="hflow-chevron" :class="{ open: !laneCollapsed.movies }" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+                Movies Pipeline
+                <span class="hflow-status-dot" :class="isPipelineRunning('movies') ? 'dot-running' : 'dot-stopped'"></span>
+            </div>
+            <div class="hflow-track" x-show="!laneCollapsed.movies" x-transition.duration.200ms x-cloak>
                 <!-- Drop Movies -->
-                <div class="vflow-node vflow-entry">
+                <div class="hflow-node">
                     <div class="flow-track-box flow-entry-box" :class="{ active: getStageCount('movies','drop_movies') > 0 }">
                         <template x-for="f in getStageFiles('movies','drop_movies').slice(0,10)" :key="f.name">
                             <span class="intake-dot" :class="[dropDotClass(f, true), { tracked: isDropTracked('movies','drop_movies',f.name) }]" :style="getDropTrackStyle('movies','drop_movies',f.name)" :title="f.name + (f.size_mb ? ' (' + f.size_mb + ' MB)' : '')" @click.stop="trackDropFile('movies','drop_movies',f.name)"></span>
@@ -221,16 +226,14 @@
                               x-text="'+' + (getStageFiles('movies','drop_movies').length - 10)"></span>
                         <span class="flow-track-empty" x-show="getStageCount('movies','drop_movies') === 0">&mdash;</span>
                     </div>
-                    <div class="vflow-label">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="vertical-align:-1px"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
-                        Drop Movies
-                    </div>
+                    <div class="hflow-label">Drop</div>
                 </div>
-                <!-- Stages: Intake → Processing → Staged -->
-                <template x-for="stage in movieStages" :key="stage.id">
-                    <div class="vflow-stage-wrap">
-                        <div class="vflow-pipe" :class="{ active: getTokensForStage('movies', stage.id).length > 0 }"></div>
-                        <div class="vflow-node">
+                <div class="hflow-pipe" :class="{ active: getStageCount('movies','drop_movies') > 0 }"></div>
+                <!-- Stages -->
+                <template x-for="(stage, idx) in movieStages" :key="stage.id">
+                    <div class="hflow-stage-group">
+                        <div class="hflow-pipe" :class="{ active: getTokensForStage('movies', stage.id).length > 0 }" x-show="idx > 0"></div>
+                        <div class="hflow-node">
                             <div class="flow-track-box" :class="[stage.color, { active: getTokensForStage('movies', stage.id).length > 0 }]">
                                 <template x-for="token in getTokensForStage('movies', stage.id).slice(0,10)" :key="token.id">
                                     <div class="tok" :class="tokClass(token, stage.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
@@ -240,40 +243,208 @@
                                 <span class="flow-track-empty" x-show="getTokensForStage('movies', stage.id).length === 0">&mdash;</span>
                                 <span class="extract-msg" x-show="extractMsg === 'movies:' + stage.id" x-transition x-cloak>Extracted!</span>
                             </div>
-                            <div class="vflow-label" x-text="stage.label"></div>
+                            <div class="hflow-label" x-text="stage.label"></div>
                             <template x-if="stage.sideBranch">
-                                <div class="vflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
-                                    <div class="side-connector"></div>
-                                    <div class="side-branch-wrap">
-                                        <svg class="side-return-arrow" viewBox="0 0 30 70" fill="none" title="Retry sends back to Processing">
-                                            <path d="M22 68 Q22 12, 6 4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/>
-                                            <path d="M2 10 L6 2 L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                        <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
-                                            <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
-                                                <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
-                                            </template>
-                                            <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
-                                                  x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
-                                        </div>
-                                        <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
+                                <div class="hflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
+                                    <div class="hflow-side-pipe"></div>
+                                    <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
+                                        <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
+                                            <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                        </template>
+                                        <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
+                                              x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
                                     </div>
+                                    <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
                                 </div>
                             </template>
                         </div>
                     </div>
                 </template>
-                <!-- Library destination -->
-                <div class="vflow-pipe short"></div>
-                <div class="vflow-node">
+                <!-- Library + Dup -->
+                <div class="hflow-pipe"></div>
+                <div class="hflow-node hflow-end">
                     <a href="/library" class="vflow-dest">Library</a>
-                    <div class="vflow-side side-dup" x-show="getTokensForStage('duplicates','dup_movies').length > 0 || dupFiles.filter(f => f.pipeline === 'movies').length > 0" x-cloak>
-                        <div class="side-connector"></div>
+                    <div class="hflow-dup-badge" x-show="getTokensForStage('duplicates','dup_movies').length > 0 || dupFiles.filter(f => f.pipeline === 'movies').length > 0" x-cloak>
+                        <div class="hflow-side-pipe" style="background:linear-gradient(180deg,rgba(56,189,248,0.4),rgba(56,189,248,0.15))"></div>
                         <div class="flow-track-box" :class="{ active: getTokensForStage('duplicates','dup_movies').length > 0 }">
                             <template x-for="token in getTokensForStage('duplicates','dup_movies').slice(0,10)" :key="token.id">
                                 <div class="tok" :class="tokClass(token, 'dup_movies')" :title="token.name" @click.stop="trackToken(token)"></div>
                             </template>
                             <span class="flow-track-empty" x-show="getTokensForStage('duplicates','dup_movies').length === 0">&mdash;</span>
+                        </div>
+                        <span class="side-label side-label-clickable" @click="openDuplicatesPanel()">Duplicates</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ MUSIC — Horizontal Swimlane ═══ -->
+        <div class="hflow-lane hflow-music" :class="{ 'hflow-collapsed': laneCollapsed.music }">
+            <div class="hflow-title" @click="toggleLane('music')">
+                <svg class="hflow-chevron" :class="{ open: !laneCollapsed.music }" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+                Music Pipeline
+                <span class="hflow-status-dot" :class="isPipelineRunning('music') ? 'dot-running' : 'dot-stopped'"></span>
+            </div>
+            <div class="hflow-track" x-show="!laneCollapsed.music" x-transition.duration.200ms x-cloak>
+                <!-- Drop Music -->
+                <div class="hflow-node">
+                    <div class="flow-track-box flow-entry-box" :class="{ active: getStageCount('music','drop_music') > 0 }">
+                        <template x-for="f in getStageFiles('music','drop_music').slice(0,10)" :key="f.name">
+                            <span class="intake-dot" :class="[dropDotClass(f), { tracked: isDropTracked('music','drop_music',f.name) }]" :style="getDropTrackStyle('music','drop_music',f.name)" :title="f.name + (f.size_mb ? ' (' + f.size_mb + ' MB)' : '')" @click.stop="trackDropFile('music','drop_music',f.name)"></span>
+                        </template>
+                        <span class="intake-overflow" x-show="getStageFiles('music','drop_music').length > 10"
+                              x-text="'+' + (getStageFiles('music','drop_music').length - 10)"></span>
+                        <span class="flow-track-empty" x-show="getStageCount('music','drop_music') === 0">&mdash;</span>
+                    </div>
+                    <div class="hflow-label">Drop</div>
+                </div>
+                <div class="hflow-pipe" :class="{ active: getStageCount('music','drop_music') > 0 }"></div>
+                <!-- Stages -->
+                <template x-for="(stage, idx) in musicStages" :key="stage.id">
+                    <div class="hflow-stage-group">
+                        <div class="hflow-pipe" :class="{ active: getTokensForStage('music', stage.id).length > 0 }" x-show="idx > 0"></div>
+                        <div class="hflow-node">
+                            <div class="flow-track-box" :class="[stage.color, { active: getTokensForStage('music', stage.id).length > 0 }]">
+                                <template x-for="token in getTokensForStage('music', stage.id).slice(0,10)" :key="token.id">
+                                    <div class="tok" :class="tokClass(token, stage.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                </template>
+                                <span class="intake-overflow" x-show="getTokensForStage('music', stage.id).length > 10"
+                                      x-text="'+' + (getTokensForStage('music', stage.id).length - 10)"></span>
+                                <span class="flow-track-empty" x-show="getTokensForStage('music', stage.id).length === 0">&mdash;</span>
+                                <span class="extract-msg" x-show="extractMsg === 'music:' + stage.id" x-transition x-cloak>Extracted!</span>
+                            </div>
+                            <div class="hflow-label" x-text="stage.label"></div>
+                            <template x-if="stage.sideBranch">
+                                <div class="hflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
+                                    <div class="hflow-side-pipe"></div>
+                                    <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
+                                        <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
+                                            <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                        </template>
+                                        <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
+                                              x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
+                                    </div>
+                                    <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <!-- Pipe → Branches -->
+                <div class="hflow-pipe" :class="{ active: musicBranches.some(b => getTokensForStage(b.pipe, b.id).length > 0) }"></div>
+                <div class="hflow-branches">
+                    <template x-for="branch in musicBranches" :key="branch.id">
+                        <div class="hflow-branch-item" :class="branch.brClass">
+                            <div class="flow-track-box" :class="[branch.color, { active: getTokensForStage(branch.pipe, branch.id).length > 0 }]">
+                                <template x-for="token in getTokensForStage(branch.pipe, branch.id).slice(0,10)" :key="token.id">
+                                    <div class="tok" :class="tokClass(token, branch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                </template>
+                                <span class="intake-overflow" x-show="getTokensForStage(branch.pipe, branch.id).length > 10"
+                                      x-text="'+' + (getTokensForStage(branch.pipe, branch.id).length - 10)"></span>
+                                <span class="flow-track-empty" x-show="getTokensForStage(branch.pipe, branch.id).length === 0">&mdash;</span>
+                            </div>
+                            <span class="hflow-branch-label" x-text="branch.label"></span>
+                        </div>
+                    </template>
+                </div>
+                <!-- Library + Dup -->
+                <div class="hflow-pipe"></div>
+                <div class="hflow-node hflow-end">
+                    <a href="/library" class="vflow-dest">Library</a>
+                    <div class="hflow-dup-badge" x-show="getTokensForStage('duplicates','dup_music').length > 0 || dupFiles.filter(f => f.pipeline === 'music').length > 0" x-cloak>
+                        <div class="hflow-side-pipe" style="background:linear-gradient(180deg,rgba(56,189,248,0.4),rgba(56,189,248,0.15))"></div>
+                        <div class="flow-track-box" :class="{ active: getTokensForStage('duplicates','dup_music').length > 0 }">
+                            <template x-for="token in getTokensForStage('duplicates','dup_music').slice(0,10)" :key="token.id">
+                                <div class="tok" :class="tokClass(token, 'dup_music')" :title="token.name" @click.stop="trackToken(token)"></div>
+                            </template>
+                            <span class="flow-track-empty" x-show="getTokensForStage('duplicates','dup_music').length === 0">&mdash;</span>
+                        </div>
+                        <span class="side-label side-label-clickable" @click="openDuplicatesPanel()">Duplicates</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ BOOKS — Horizontal Swimlane ═══ -->
+        <div class="hflow-lane hflow-books" :class="{ 'hflow-collapsed': laneCollapsed.books }">
+            <div class="hflow-title" @click="toggleLane('books')">
+                <svg class="hflow-chevron" :class="{ open: !laneCollapsed.books }" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+                Books Pipeline
+                <span class="hflow-status-dot" :class="isPipelineRunning('books') ? 'dot-running' : 'dot-stopped'"></span>
+            </div>
+            <div class="hflow-track" x-show="!laneCollapsed.books" x-transition.duration.200ms x-cloak>
+                <!-- Drop Books -->
+                <div class="hflow-node">
+                    <div class="flow-track-box flow-entry-box" :class="{ active: getStageCount('books','drop_books') > 0 }">
+                        <template x-for="f in getStageFiles('books','drop_books').slice(0,10)" :key="f.name">
+                            <span class="intake-dot" :class="[dropDotClass(f), { tracked: isDropTracked('books','drop_books',f.name) }]" :style="getDropTrackStyle('books','drop_books',f.name)" :title="f.name + (f.size_mb ? ' (' + f.size_mb + ' MB)' : '')" @click.stop="trackDropFile('books','drop_books',f.name)"></span>
+                        </template>
+                        <span class="intake-overflow" x-show="getStageFiles('books','drop_books').length > 10"
+                              x-text="'+' + (getStageFiles('books','drop_books').length - 10)"></span>
+                        <span class="flow-track-empty" x-show="getStageCount('books','drop_books') === 0">&mdash;</span>
+                    </div>
+                    <div class="hflow-label">Drop</div>
+                </div>
+                <div class="hflow-pipe" :class="{ active: getStageCount('books','drop_books') > 0 }"></div>
+                <!-- Stages -->
+                <template x-for="(stage, idx) in booksStages" :key="stage.id">
+                    <div class="hflow-stage-group">
+                        <div class="hflow-pipe" :class="{ active: getTokensForStage('books', stage.id).length > 0 }" x-show="idx > 0"></div>
+                        <div class="hflow-node">
+                            <div class="flow-track-box" :class="[stage.color, { active: getTokensForStage('books', stage.id).length > 0 }]">
+                                <template x-for="token in getTokensForStage('books', stage.id).slice(0,10)" :key="token.id">
+                                    <div class="tok" :class="tokClass(token, stage.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                </template>
+                                <span class="intake-overflow" x-show="getTokensForStage('books', stage.id).length > 10"
+                                      x-text="'+' + (getTokensForStage('books', stage.id).length - 10)"></span>
+                                <span class="flow-track-empty" x-show="getTokensForStage('books', stage.id).length === 0">&mdash;</span>
+                                <span class="extract-msg" x-show="extractMsg === 'books:' + stage.id" x-transition x-cloak>Extracted!</span>
+                            </div>
+                            <div class="hflow-label" x-text="stage.label"></div>
+                            <template x-if="stage.sideBranch">
+                                <div class="hflow-side" :class="'side-' + stage.sideBranch.type" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0" x-transition x-cloak>
+                                    <div class="hflow-side-pipe"></div>
+                                    <div class="flow-track-box" :class="{ active: getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 0 }">
+                                        <template x-for="token in getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).slice(0,10)" :key="token.id">
+                                            <div class="tok" :class="tokClass(token, stage.sideBranch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                        </template>
+                                        <span class="intake-overflow" x-show="getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length > 10"
+                                              x-text="'+' + (getTokensForStage(stage.sideBranch.pipe, stage.sideBranch.id).length - 10)"></span>
+                                    </div>
+                                    <span class="side-label" :class="{ 'side-label-clickable': stage.sideBranch.type === 'warn' }" x-text="stage.sideBranch.label" @click="stage.sideBranch.type === 'warn' && openReviewPanel(stage.sideBranch.id)"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <!-- Pipe → Branches -->
+                <div class="hflow-pipe" :class="{ active: booksBranches.some(b => getTokensForStage(b.pipe, b.id).length > 0) }"></div>
+                <div class="hflow-branches">
+                    <template x-for="branch in booksBranches" :key="branch.id">
+                        <div class="hflow-branch-item" :class="branch.brClass">
+                            <div class="flow-track-box" :class="[branch.color, { active: getTokensForStage(branch.pipe, branch.id).length > 0 }]">
+                                <template x-for="token in getTokensForStage(branch.pipe, branch.id).slice(0,10)" :key="token.id">
+                                    <div class="tok" :class="tokClass(token, branch.id)" :title="token.name + (token.size_mb ? ' (' + token.size_mb + ' MB)' : '')" @click.stop="trackToken(token)"></div>
+                                </template>
+                                <span class="intake-overflow" x-show="getTokensForStage(branch.pipe, branch.id).length > 10"
+                                      x-text="'+' + (getTokensForStage(branch.pipe, branch.id).length - 10)"></span>
+                                <span class="flow-track-empty" x-show="getTokensForStage(branch.pipe, branch.id).length === 0">&mdash;</span>
+                            </div>
+                            <span class="hflow-branch-label" x-text="branch.label"></span>
+                        </div>
+                    </template>
+                </div>
+                <!-- Library + Dup -->
+                <div class="hflow-pipe"></div>
+                <div class="hflow-node hflow-end">
+                    <a href="/library" class="vflow-dest">Library</a>
+                    <div class="hflow-dup-badge" x-show="getTokensForStage('duplicates','dup_books').length > 0 || dupFiles.filter(f => f.pipeline === 'books').length > 0" x-cloak>
+                        <div class="hflow-side-pipe" style="background:linear-gradient(180deg,rgba(56,189,248,0.4),rgba(56,189,248,0.15))"></div>
+                        <div class="flow-track-box" :class="{ active: getTokensForStage('duplicates','dup_books').length > 0 }">
+                            <template x-for="token in getTokensForStage('duplicates','dup_books').slice(0,10)" :key="token.id">
+                                <div class="tok" :class="tokClass(token, 'dup_books')" :title="token.name" @click.stop="trackToken(token)"></div>
+                            </template>
+                            <span class="flow-track-empty" x-show="getTokensForStage('duplicates','dup_books').length === 0">&mdash;</span>
                         </div>
                         <span class="side-label side-label-clickable" @click="openDuplicatesPanel()">Duplicates</span>
                     </div>
@@ -305,7 +476,7 @@
                 <div class="review-item">
                     <div class="review-item-main">
                         <div class="review-item-info">
-                            <span class="review-pipeline-badge" :class="'badge-' + rf.pipeline" x-text="rf.pipeline === 'shows' ? 'Series' : 'Movies'"></span>
+                            <span class="review-pipeline-badge" :class="'badge-' + rf.pipeline" x-text="rf.pipeline === 'shows' ? 'Series' : rf.pipeline === 'movies' ? 'Movies' : rf.pipeline === 'music' ? 'Music' : 'Books'"></span>
                             <template x-if="rf.editing">
                                 <input class="review-rename-input" type="text" x-model="rf.editName" @keydown.enter="submitRename(rf)" @keydown.escape="rf.editing = false" x-ref="renameInput">
                             </template>
@@ -364,7 +535,7 @@
                 <div class="dup-card">
                     <div class="dup-card-top">
                         <div class="dup-card-title">
-                            <span class="review-pipeline-badge" :class="'badge-' + df.pipeline" x-text="df.pipeline === 'shows' ? 'Series' : 'Movies'"></span>
+                            <span class="review-pipeline-badge" :class="'badge-' + df.pipeline" x-text="df.pipeline === 'shows' ? 'Series' : df.pipeline === 'movies' ? 'Movies' : df.pipeline === 'music' ? 'Music' : 'Books'"></span>
                             <span class="dup-card-name" x-text="df.final_name" :title="df.final_name"></span>
                             <span class="dup-size-badge" :class="df.new_size_mb > df.existing_size_mb ? 'dup-larger' : df.new_size_mb < df.existing_size_mb ? 'dup-smaller' : 'dup-same'"
                                   x-text="df.new_size_mb > df.existing_size_mb ? 'LARGER' : df.new_size_mb < df.existing_size_mb ? 'SMALLER' : 'SAME SIZE'"></span>
@@ -606,6 +777,20 @@ function dashboardApp() {
         _nextColorIdx: 0,
         _trackColors: ['#f472b6', '#38bdf8', '#fbbf24', '#c084fc', '#4ade80', '#fb923c', '#22d3ee', '#f87171'],
 
+        // Pipeline lane collapse state (auto-collapsed when group not running)
+        laneCollapsed: { series: true, movies: true, music: true, books: true },
+
+        isPipelineRunning(group) {
+            return this.services.some(s => s.group === group && s.status === 'running');
+        },
+        toggleLane(group) {
+            this.laneCollapsed[group] = !this.laneCollapsed[group];
+        },
+        isLaneVisible(group) {
+            // Show if: group has running services OR user manually expanded it
+            return this.isPipelineRunning(group) || !this.laneCollapsed[group];
+        },
+
         reviewOpen: false,
         reviewFiles: [],
         reviewLoading: false,
@@ -666,6 +851,25 @@ function dashboardApp() {
             { id: 'movies_staged', label: 'Staged', color: 'clr-staged', sideBranch: { id: 'review_movies', label: 'Review', pipe: 'review', type: 'warn' } },
         ],
 
+        musicStages: [
+            { id: 'music_system_drop', label: 'Intake', color: 'clr-intake' },
+            { id: 'music_processing', label: 'Processing', color: 'clr-processing', sideBranch: { id: 'review_music', label: 'Review', pipe: 'review', type: 'warn' } },
+        ],
+        musicBranches: [
+            { id: 'staged_music', label: 'Music', pipe: 'music', color: 'clr-music', brClass: 'br-music' },
+            { id: 'staged_audiobooks', label: 'Audiobooks', pipe: 'music', color: 'clr-audiobooks', brClass: 'br-audiobooks' },
+        ],
+
+        booksStages: [
+            { id: 'books_system_drop', label: 'Intake', color: 'clr-intake' },
+            { id: 'books_processing', label: 'Processing', color: 'clr-processing', sideBranch: { id: 'review_books', label: 'Review', pipe: 'review', type: 'warn' } },
+        ],
+        booksBranches: [
+            { id: 'staged_books', label: 'Books', pipe: 'books', color: 'clr-books', brClass: 'br-books' },
+            { id: 'staged_comics', label: 'Comics', pipe: 'books', color: 'clr-comics', brClass: 'br-comics' },
+            { id: 'staged_manga', label: 'Manga', pipe: 'books', color: 'clr-manga', brClass: 'br-manga' },
+        ],
+
         get allRunning() {
             return this.services.every(s => s.status === 'running');
         },
@@ -676,17 +880,32 @@ function dashboardApp() {
         initDashboard() {
             fetch('/api/key-status').then(r => r.json()).then(data => {
                 if (!data.all_ready) this.keyWarning = data;
-            }).catch(() => {});
+            }).catch(e => {
+                console.error('Failed to load API key status:', e);
+                window.toast.error('Failed to load API key status');
+            });
             fetch('/api/health/setup-status').then(r => r.json()).then(data => {
                 this.setupStatus = data;
-            }).catch(() => {});
+            }).catch(e => {
+                console.error('Failed to load setup status:', e);
+                window.toast.error('Failed to load setup status');
+            });
 
             // Seed tokens from initial pipeline data
             this.processSnapshot(this.pipelineData, true);
 
+            // Auto-expand lanes for running pipelines
+            ['series', 'movies', 'music', 'books'].forEach(g => {
+                this.laneCollapsed[g] = !this.isPipelineRunning(g);
+            });
+
             if (window._socket) {
                 window._socket.on('service_status', (data) => {
                     this.services = data;
+                    // Auto-expand lanes when services start
+                    ['series', 'movies', 'music', 'books'].forEach(g => {
+                        if (this.isPipelineRunning(g)) this.laneCollapsed[g] = false;
+                    });
                 });
                 window._socket.on('pipeline_update', (data) => {
                     this.pipelineData = data;
@@ -729,6 +948,8 @@ function dashboardApp() {
             if (file.is_dir) return 'folder';
             if (_SKIP_RE.test(file.name)) return 'skip';
             if (_ARCHIVE_RE.test(file.name)) return 'archive';
+            if (/\.(mp3|flac|m4a|m4b|aac|ogg|opus|wav|wma|ape|alac)$/i.test(file.name)) return 'audio';
+            if (/\.(epub|pdf|mobi|azw|azw3|cbz|cbr|djvu)$/i.test(file.name)) return 'book';
             return 'video';
         },
 
@@ -775,7 +996,7 @@ function dashboardApp() {
                     existingKeys.add(key);
                     updatedTokens.push({ ...t, anim: 'idle' });
                 } else if (!isInitial) {
-                    if (t.type === 'archive' && (t.stageId === 'series_system_drop' || t.stageId === 'movies_system_drop')) {
+                    if (t.type === 'archive' && (t.stageId === 'series_system_drop' || t.stageId === 'movies_system_drop' || t.stageId === 'music_system_drop' || t.stageId === 'books_system_drop')) {
                         this.showExtractPopup(t.pipeline + ':' + t.stageId);
                     }
                     updatedTokens.push({ ...t, anim: 'boom' });
@@ -953,7 +1174,7 @@ function dashboardApp() {
 
         tokClass(token, stageId) {
             let cls = 'tok-' + token.type + ' anim-' + token.anim;
-            if (token.type === 'archive' && (stageId === 'series_system_drop' || stageId === 'movies_system_drop')) {
+            if (token.type === 'archive' && (stageId === 'series_system_drop' || stageId === 'movies_system_drop' || stageId === 'music_system_drop' || stageId === 'books_system_drop')) {
                 cls += ' extracting';
             }
             const tracked = this.trackedTokens.find(tk => tk.status === 'tracking' && tk.id === token.id);
@@ -1362,13 +1583,20 @@ function dashboardApp() {
         },
 
         async startService(id) {
-            const resp = await fetch(`/api/services/${id}/start`, { method: 'POST' });
-            if (!resp.ok) { const d = await resp.json(); window.toast.error(d.error || 'Failed to start'); }
+            try {
+                const resp = await fetch(`/api/services/${id}/start`, { method: 'POST' });
+                if (!resp.ok) { const d = await resp.json(); window.toast.error(d.error || 'Failed to start'); }
+            } catch (e) { console.error('Start service failed:', e); window.toast.error('Failed to start service: ' + e.message); }
         },
-        async stopService(id) { await fetch(`/api/services/${id}/stop`, { method: 'POST' }); },
+        async stopService(id) {
+            try { await fetch(`/api/services/${id}/stop`, { method: 'POST' }); }
+            catch (e) { console.error('Stop service failed:', e); window.toast.error('Failed to stop service: ' + e.message); }
+        },
         async restartService(id) {
-            const resp = await fetch(`/api/services/${id}/restart`, { method: 'POST' });
-            if (!resp.ok) { const d = await resp.json(); window.toast.error(d.error || 'Failed to restart'); }
+            try {
+                const resp = await fetch(`/api/services/${id}/restart`, { method: 'POST' });
+                if (!resp.ok) { const d = await resp.json(); window.toast.error(d.error || 'Failed to restart'); }
+            } catch (e) { console.error('Restart service failed:', e); window.toast.error('Failed to restart service: ' + e.message); }
         },
 
         async startAll() {
@@ -1386,12 +1614,13 @@ function dashboardApp() {
                         window.toast.warn(blocked.length + ' service(s) skipped — missing API keys. Check Settings > API Keys.');
                     }
                 }
-            } catch (e) {}
+            } catch (e) { console.error('Start all failed:', e); window.toast.error('Failed to start services: ' + e.message); }
             this.starting = false;
         },
         async stopAll() {
             this.stopping = true;
-            await fetch('/api/services/stop-all', { method: 'POST' });
+            try { await fetch('/api/services/stop-all', { method: 'POST' }); }
+            catch (e) { console.error('Stop all failed:', e); window.toast.error('Failed to stop services: ' + e.message); }
             this.stopping = false;
         },
         async restartAll() {
@@ -1407,12 +1636,12 @@ function dashboardApp() {
                         window.toast.warn(blocked.length + ' service(s) skipped — missing API keys. Check Settings > API Keys.');
                     }
                 }
-            } catch (e) {}
+            } catch (e) { console.error('Restart all failed:', e); window.toast.error('Failed to restart services: ' + e.message); }
             this.restarting = false;
         },
         async startGroup(group) {
-            const resp = await fetch(`/api/services/group/${group}/start`, { method: 'POST' });
             try {
+                const resp = await fetch(`/api/services/group/${group}/start`, { method: 'POST' });
                 const data = await resp.json();
                 if (Array.isArray(data)) {
                     const blocked = data.filter(r => r.status === 'blocked');
@@ -1420,9 +1649,12 @@ function dashboardApp() {
                         window.toast.warn(blocked.length + ' service(s) skipped — missing API keys.');
                     }
                 }
-            } catch (e) {}
+            } catch (e) { console.error('Start group failed:', e); window.toast.error('Failed to start group: ' + e.message); }
         },
-        async stopGroup(group) { await fetch(`/api/services/group/${group}/stop`, { method: 'POST' }); },
+        async stopGroup(group) {
+            try { await fetch(`/api/services/group/${group}/stop`, { method: 'POST' }); }
+            catch (e) { console.error('Stop group failed:', e); window.toast.error('Failed to stop group: ' + e.message); }
+        },
         showInfraError(issues) {
             this.infraErrors = issues;
         },

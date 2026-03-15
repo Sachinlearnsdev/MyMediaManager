@@ -455,17 +455,9 @@ class AnimeProcessor:
         return Path(self.cfg['paths']['series_pipeline'].get('review', ''))
 
     def _write_reason(self, dest_path: Path, candidate: str, detail: str):
-        try:
-            reason_path = dest_path.with_name(dest_path.name + ".reason.json")
-            reason_path.write_text(json.dumps({
-                "source": "animeprocessor", "reason": "no_match",
-                "confidence": 0, "threshold": 0,
-                "candidate": candidate, "best_match": None,
-                "detail": detail,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }, indent=2), encoding='utf-8')
-        except Exception:
-            pass
+        common.write_reason_sidecar(dest_path, "animeprocessor", 0, 0,
+                                    candidate, None, detail=detail,
+                                    reason="no_match")
 
     def _get_dup_dir(self) -> Path:
         raw = self.cfg['paths']['series_pipeline'].get('duplicates', '')
@@ -473,20 +465,7 @@ class AnimeProcessor:
 
     def _write_dup(self, dest_path: Path, final_name: str, existing_path: Path):
         """Write a .dup.json sidecar next to a file moved to Duplicates."""
-        try:
-            dup_path = dest_path.with_name(dest_path.name + ".dup.json")
-            existing_size = existing_path.stat().st_size if existing_path.exists() else 0
-            new_size = dest_path.stat().st_size if dest_path.exists() else 0
-            dup_path.write_text(json.dumps({
-                "source": "animeprocessor",
-                "final_name": final_name,
-                "existing_path": str(existing_path),
-                "existing_size_mb": round(existing_size / (1024*1024), 1),
-                "new_size_mb": round(new_size / (1024*1024), 1),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }, indent=2), encoding='utf-8')
-        except Exception:
-            pass
+        common.write_dup_sidecar(dest_path, "animeprocessor", final_name, existing_path)
 
     def _resolve_english_title(self, season_data, candidate):
         """English title resolution chain."""
@@ -761,7 +740,14 @@ class AnimeProcessor:
             prev_max = existing_season.get("episode_count", 0)
             season_cache_data["episode_count"] = max(prev_max, ep_num)
             self.show_cache.update_season(slug, season_num, season_cache_data)
-            # Noise learner disabled: write-only system (structpilot never reads learned patterns)
+            # Noise learner: always learns (regardless of apply toggle)
+            try:
+                self.noise_learner.learn_from_match(
+                    candidate, root_name, file_path.name,
+                    root_name, category="video"
+                )
+            except Exception:
+                pass
 
             # --- BUILD PATH ---
             season_folder = self._resolve_season_folder(season_num, season_data, s1_data, safe_root)

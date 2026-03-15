@@ -236,8 +236,14 @@ def resolve_content(raw_name):
         except Exception as e:
             log_obj.debug(f"Cache register skipped: {e}")
 
-        # Noise learner disabled: write-only system (structpilot never reads learned patterns)
-        # Kept import for future integration but no-op for now to avoid list/set bugs
+        # Noise learner: always learns (regardless of apply toggle)
+        try:
+            NOISE_LEARNER.learn_from_match(
+                raw_name, best_match["title"], raw_name,
+                best_match["title"], category="video"
+            )
+        except Exception:
+            pass
 
         return best_match, int(best_score)
     return None, int(best_score)

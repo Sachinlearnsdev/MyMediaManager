@@ -21,6 +21,10 @@ SERVICE_LOG_NAMES = [
     "tvproc", "cartoonsproc", "animeproc",
     "realityproc", "talkshowproc", "documentariesproc",
     "movieproc",
+    "automouse_music", "autoharbor_music", "autorouter_music",
+    "musicpilot", "audioclassifier", "musicprocessor", "audiobookprocessor",
+    "automouse_books", "autoharbor_books", "autorouter_books",
+    "bookpilot", "bookclassifier", "bookprocessor", "comicprocessor", "mangaprocessor",
 ]
 
 # Friendly display names
@@ -42,6 +46,21 @@ SERVICE_LABELS = {
     "talkshowproc":        "Talk Show Processor",
     "documentariesproc":   "Docs Processor",
     "movieproc":           "Movie Processor",
+    "automouse_music":     "AutoMouse (Music)",
+    "autoharbor_music":    "AutoHarbor (Music)",
+    "autorouter_music":    "AutoRouter (Music)",
+    "musicpilot":          "MusicPilot",
+    "audioclassifier":     "Audio Classifier",
+    "musicprocessor":      "Music Processor",
+    "audiobookprocessor":  "Audiobook Processor",
+    "automouse_books":     "AutoMouse (Books)",
+    "autoharbor_books":    "AutoHarbor (Books)",
+    "autorouter_books":    "AutoRouter (Books)",
+    "bookpilot":           "BookPilot",
+    "bookclassifier":      "Book Classifier",
+    "bookprocessor":       "Book Processor",
+    "comicprocessor":      "Comic Processor",
+    "mangaprocessor":      "Manga Processor",
 }
 
 # Pipeline groups — merged views showing the complete flow
@@ -55,6 +74,10 @@ PIPELINE_GROUPS = {
             "contentclassifier", "tvproc", "cartoonsproc", "animeproc",
             "realityproc", "talkshowproc", "documentariesproc",
             "movieproc",
+            "automouse_music", "autoharbor_music", "autorouter_music",
+            "musicpilot", "audioclassifier", "musicprocessor", "audiobookprocessor",
+            "automouse_books", "autoharbor_books", "autorouter_books",
+            "bookpilot", "bookclassifier", "bookprocessor", "comicprocessor", "mangaprocessor",
         ],
     },
     "pipeline_series": {
@@ -72,6 +95,22 @@ PIPELINE_GROUPS = {
             "panel",
             "automouse_movies", "autoharbor_movies", "autorouter_movies", "structpilot_movies",
             "movieproc",
+        ],
+    },
+    "pipeline_music": {
+        "label": "Music Pipeline (full flow)",
+        "services": [
+            "panel",
+            "automouse_music", "autoharbor_music", "autorouter_music",
+            "musicpilot", "audioclassifier", "musicprocessor", "audiobookprocessor",
+        ],
+    },
+    "pipeline_books": {
+        "label": "Books Pipeline (full flow)",
+        "services": [
+            "panel",
+            "automouse_books", "autoharbor_books", "autorouter_books",
+            "bookpilot", "bookclassifier", "bookprocessor", "comicprocessor", "mangaprocessor",
         ],
     },
 }

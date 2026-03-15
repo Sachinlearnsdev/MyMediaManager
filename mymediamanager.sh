@@ -64,6 +64,27 @@ init_infrastructure() {
     mkdir -p "$STORAGE_ROOT/.Work/Movies/Failed"
     mkdir -p "$STORAGE_ROOT/.Work/Movies/Staged"
 
+    # Music Pipeline
+    mkdir -p "$STORAGE_ROOT/Drop_Music"
+    mkdir -p "$STORAGE_ROOT/.Work/Music/Intake"
+    mkdir -p "$STORAGE_ROOT/.Work/Music/Processing"
+    mkdir -p "$STORAGE_ROOT/.Work/Music/Failed"
+    mkdir -p "$STORAGE_ROOT/.Work/Music/Staged/Music"
+    mkdir -p "$STORAGE_ROOT/.Work/Music/Staged/Audiobooks"
+    mkdir -p "$STORAGE_ROOT/Review/Music"
+    mkdir -p "$STORAGE_ROOT/Duplicates/Music"
+
+    # Books Pipeline
+    mkdir -p "$STORAGE_ROOT/Drop_Books"
+    mkdir -p "$STORAGE_ROOT/.Work/Books/Intake"
+    mkdir -p "$STORAGE_ROOT/.Work/Books/Processing"
+    mkdir -p "$STORAGE_ROOT/.Work/Books/Failed"
+    mkdir -p "$STORAGE_ROOT/.Work/Books/Staged/Books"
+    mkdir -p "$STORAGE_ROOT/.Work/Books/Staged/Comics"
+    mkdir -p "$STORAGE_ROOT/.Work/Books/Staged/Manga"
+    mkdir -p "$STORAGE_ROOT/Review/Books"
+    mkdir -p "$STORAGE_ROOT/Duplicates/Books"
+
     # 3. Output Libraries
     mkdir -p "$LIBRARY_ROOT/TV Shows"
     mkdir -p "$LIBRARY_ROOT/Movies"
@@ -75,6 +96,13 @@ init_infrastructure() {
     mkdir -p "$LIBRARY_ROOT/Documentaries/Series"
     mkdir -p "$LIBRARY_ROOT/Documentaries/Movies"
     mkdir -p "$LIBRARY_ROOT/Stand-Up"
+    mkdir -p "$LIBRARY_ROOT/Audio & Music"
+    mkdir -p "$LIBRARY_ROOT/Audiobooks"
+    mkdir -p "$LIBRARY_ROOT/Books/Fiction"
+    mkdir -p "$LIBRARY_ROOT/Books/Non-Fiction"
+    mkdir -p "$LIBRARY_ROOT/Books/Technical"
+    mkdir -p "$LIBRARY_ROOT/Comics"
+    mkdir -p "$LIBRARY_ROOT/Manga"
 
     # 4. System Caches & Logs (manager root / SSD)
     mkdir -p "$MANAGER_ROOT/logs"
@@ -86,6 +114,11 @@ init_infrastructure() {
     mkdir -p "$MANAGER_ROOT/cache/reality"
     mkdir -p "$MANAGER_ROOT/cache/talkshow"
     mkdir -p "$MANAGER_ROOT/cache/documentaries"
+    mkdir -p "$MANAGER_ROOT/cache/music"
+    mkdir -p "$MANAGER_ROOT/cache/audiobooks"
+    mkdir -p "$MANAGER_ROOT/cache/books"
+    mkdir -p "$MANAGER_ROOT/cache/comics"
+    mkdir -p "$MANAGER_ROOT/cache/manga"
 
     # Set Permissions (*arr pattern: shared media group)
     REAL_USER="${MMM_USER:-$(whoami)}"
@@ -159,7 +192,26 @@ launch "autorouter.py" "movies"
 launch "structpilot.py" "movies"
 launch "movieprocessor.py" "movies"
 
-# Step D: Start Final Processors
+# Step D: Start Music Pipeline
+launch "automouse.py" "music"
+launch "autoharbor.py" "music"
+launch "autorouter.py" "music"
+launch "musicpilot.py" "standalone"
+launch "audioclassifier.py" "standalone"
+launch "musicprocessor.py" "standalone"
+launch "audiobookprocessor.py" "standalone"
+
+# Step E: Start Books Pipeline
+launch "automouse.py" "books"
+launch "autoharbor.py" "books"
+launch "autorouter.py" "books"
+launch "bookpilot.py" "standalone"
+launch "bookclassifier.py" "standalone"
+launch "bookprocessor.py" "standalone"
+launch "comicprocessor.py" "standalone"
+launch "mangaprocessor.py" "standalone"
+
+# Step F: Start Final Processors
 launch "seriesprocessor.py" "tv"
 launch "seriesprocessor.py" "cartoons"
 launch "seriesprocessor.py" "reality"

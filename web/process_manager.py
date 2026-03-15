@@ -83,6 +83,23 @@ SERVICE_REGISTRY = [
     {"id": "seriesprocessor_reality",       "script": "seriesprocessor.py",   "args": ["--type", "reality"],       "group": "series",  "label": "Reality Processor"},
     {"id": "seriesprocessor_talkshow",      "script": "seriesprocessor.py",   "args": ["--type", "talkshow"],      "group": "series",  "label": "Talk Show Processor"},
     {"id": "seriesprocessor_documentaries", "script": "seriesprocessor.py",   "args": ["--type", "documentaries"], "group": "series",  "label": "Docs Processor"},
+    # Music Pipeline
+    {"id": "automouse_music",        "script": "automouse.py",         "args": ["--mode", "music"],      "group": "music",   "label": "AutoMouse (Music)"},
+    {"id": "autoharbor_music",       "script": "autoharbor.py",        "args": ["--mode", "music"],      "group": "music",   "label": "AutoHarbor (Music)"},
+    {"id": "autorouter_music",       "script": "autorouter.py",        "args": ["--mode", "music"],      "group": "music",   "label": "AutoRouter (Music)"},
+    {"id": "musicpilot",             "script": "musicpilot.py",        "args": [],                       "group": "music",   "label": "MusicPilot"},
+    {"id": "audioclassifier",        "script": "audioclassifier.py",   "args": [],                       "group": "music",   "label": "AudioClassifier"},
+    {"id": "musicprocessor",         "script": "musicprocessor.py",    "args": [],                       "group": "music",   "label": "MusicProcessor"},
+    {"id": "audiobookprocessor",     "script": "audiobookprocessor.py","args": [],                       "group": "music",   "label": "AudiobookProcessor"},
+    # Books Pipeline
+    {"id": "automouse_books",      "script": "automouse.py",         "args": ["--mode", "books"],      "group": "books",   "label": "AutoMouse (Books)"},
+    {"id": "autoharbor_books",     "script": "autoharbor.py",        "args": ["--mode", "books"],      "group": "books",   "label": "AutoHarbor (Books)"},
+    {"id": "autorouter_books",     "script": "autorouter.py",        "args": ["--mode", "books"],      "group": "books",   "label": "AutoRouter (Books)"},
+    {"id": "bookpilot",            "script": "bookpilot.py",         "args": [],                       "group": "books",   "label": "BookPilot"},
+    {"id": "bookclassifier",       "script": "bookclassifier.py",    "args": [],                       "group": "books",   "label": "BookClassifier"},
+    {"id": "bookprocessor",        "script": "bookprocessor.py",     "args": [],                       "group": "books",   "label": "BookProcessor"},
+    {"id": "comicprocessor",       "script": "comicprocessor.py",    "args": [],                       "group": "books",   "label": "ComicProcessor"},
+    {"id": "mangaprocessor",       "script": "mangaprocessor.py",    "args": [],                       "group": "books",   "label": "MangaProcessor"},
 ]
 
 
@@ -96,6 +113,9 @@ SERVICE_API_REQUIREMENTS = {
     "seriesprocessor_reality":       ["tvdb"],
     "seriesprocessor_talkshow":      ["tvdb"],
     "seriesprocessor_documentaries": ["tvdb"],
+    # musicprocessor & audiobookprocessor use MusicBrainz (free, no key needed)
+    # bookprocessor & comicprocessor use OpenLibrary (free, no key needed)
+    # mangaprocessor uses AniList (free, no key needed)
 }
 
 
@@ -161,11 +181,17 @@ class ProcessManager:
             # Input drops (data root -- same drive as pipeline)
             data_root / "Drop_Shows",
             data_root / "Drop_Movies",
+            data_root / "Drop_Music",
+            data_root / "Drop_Books",
             data_root / "Trash",
             data_root / "Review" / "Shows",
             data_root / "Review" / "Movies",
+            data_root / "Review" / "Music",
+            data_root / "Review" / "Books",
             data_root / "Duplicates" / "Shows",
             data_root / "Duplicates" / "Movies",
+            data_root / "Duplicates" / "Music",
+            data_root / "Duplicates" / "Books",
             # Series pipeline (data root - hidden with dot prefix)
             data_root / ".Work" / "Shows" / "Intake",
             data_root / ".Work" / "Shows" / "Processing",
@@ -182,17 +208,38 @@ class ProcessManager:
             data_root / ".Work" / "Movies" / "Processing",
             data_root / ".Work" / "Movies" / "Failed",
             data_root / ".Work" / "Movies" / "Staged",
+            # Music pipeline (data root)
+            data_root / ".Work" / "Music" / "Intake",
+            data_root / ".Work" / "Music" / "Processing",
+            data_root / ".Work" / "Music" / "Failed",
+            data_root / ".Work" / "Music" / "Staged" / "Music",
+            data_root / ".Work" / "Music" / "Staged" / "Audiobooks",
+            # Books pipeline (data root)
+            data_root / ".Work" / "Books" / "Intake",
+            data_root / ".Work" / "Books" / "Processing",
+            data_root / ".Work" / "Books" / "Failed",
+            data_root / ".Work" / "Books" / "Staged" / "Books",
+            data_root / ".Work" / "Books" / "Staged" / "Comics",
+            data_root / ".Work" / "Books" / "Staged" / "Manga",
             # Libraries (library root -- same drive as data root)
-            library_root / "TV Shows",
-            library_root / "Movies",
-            library_root / "Anime" / "Shows",
-            library_root / "Anime" / "Movies",
-            library_root / "Cartoons",
-            library_root / "Reality TV",
-            library_root / "Talk Shows",
-            library_root / "Documentaries" / "Series",
-            library_root / "Documentaries" / "Movies",
-            library_root / "Stand-Up",
+            # Shows & Movies
+            library_root / "Shows & Movies" / "TV Shows",
+            library_root / "Shows & Movies" / "Movies",
+            library_root / "Shows & Movies" / "Anime" / "Shows",
+            library_root / "Shows & Movies" / "Anime" / "Movies",
+            library_root / "Shows & Movies" / "Cartoons",
+            library_root / "Shows & Movies" / "Reality TV",
+            library_root / "Shows & Movies" / "Talk Shows",
+            library_root / "Shows & Movies" / "Documentaries" / "Series",
+            library_root / "Shows & Movies" / "Documentaries" / "Movies",
+            library_root / "Shows & Movies" / "Stand-Up",
+            # Audio & Music
+            library_root / "Audio & Music" / "Music",
+            library_root / "Audio & Music" / "Audiobooks",
+            # Books & Comics
+            library_root / "Books & Comics" / "Books",
+            library_root / "Books & Comics" / "Comics",
+            library_root / "Books & Comics" / "Manga",
             # System
             ROOT / "logs",
             ROOT / "cache" / "tv",
@@ -203,6 +250,7 @@ class ProcessManager:
             ROOT / "cache" / "reality",
             ROOT / "cache" / "talkshow",
             ROOT / "cache" / "documentaries",
+            ROOT / "cache" / "api",
         ]
         for d in dirs:
             try:
@@ -450,17 +498,23 @@ class ProcessManager:
 
         # Check if any pipeline working dirs have files (excluding drop, review, duplicates, library)
         pipeline_stages = []
-        for sid, data in (snapshot.get('series', {}) | snapshot.get('movies', {})).items():
-            if sid.startswith('drop_'):
-                continue
-            pipeline_stages.append(data)
+        for pipe_key in ('series', 'movies', 'music', 'books'):
+            for sid, data in snapshot.get(pipe_key, {}).items():
+                if sid.startswith('drop_'):
+                    continue
+                pipeline_stages.append(data)
 
         pipeline_busy = any(s.get('count', 0) > 0 for s in pipeline_stages)
 
         # Check if drop folders have files
         series_drop = snapshot.get('series', {}).get('drop_shows', {})
         movies_drop = snapshot.get('movies', {}).get('drop_movies', {})
-        has_drops = (series_drop.get('count', 0) > 0 or movies_drop.get('count', 0) > 0)
+        music_drop = snapshot.get('music', {}).get('drop_music', {})
+        books_drop = snapshot.get('books', {}).get('drop_books', {})
+        has_drops = (
+            series_drop.get('count', 0) > 0 or movies_drop.get('count', 0) > 0
+            or music_drop.get('count', 0) > 0 or books_drop.get('count', 0) > 0
+        )
 
         # Determine which groups have running services
         any_running = any(
@@ -471,13 +525,16 @@ class ProcessManager:
         # Auto-start: drop folders have files but services stopped
         if has_drops and not any_running:
             self._log.info("[Auto] Files detected in drop folders, starting services...")
-            # Start the relevant group(s)
-            if series_drop.get('count', 0) > 0:
-                self.init_infrastructure()
-                self.start_group('series')
-            if movies_drop.get('count', 0) > 0:
-                self.init_infrastructure()
-                self.start_group('movies')
+            infra_done = False
+            for drop, group in [
+                (series_drop, 'series'), (movies_drop, 'movies'),
+                (music_drop, 'music'), (books_drop, 'books'),
+            ]:
+                if drop.get('count', 0) > 0:
+                    if not infra_done:
+                        self.init_infrastructure()
+                        infra_done = True
+                    self.start_group(group)
             self._auto_idle_since = None
             return
 

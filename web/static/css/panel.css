@@ -838,6 +838,241 @@ code {
     transform: translateY(-2px);
 }
 
+/* ═══════════════════════════════════════════════
+   Horizontal Swimlane Layout (Series & Movies)
+   ═══════════════════════════════════════════════ */
+.hflow-lane {
+    border: 1px solid rgba(99,102,241,0.18);
+    border-radius: 12px;
+    padding: 16px 20px 20px;
+    margin-bottom: 18px;
+    background: rgba(99,102,241,0.03);
+}
+.hflow-movies {
+    border-color: rgba(168,85,247,0.18);
+    background: rgba(168,85,247,0.03);
+}
+.hflow-music {
+    border-color: rgba(234,179,8,0.18);
+    background: rgba(234,179,8,0.03);
+}
+.hflow-books {
+    border-color: rgba(16,185,129,0.18);
+    background: rgba(16,185,129,0.03);
+}
+.hflow-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(226,232,240,0.85);
+    margin-bottom: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s;
+}
+.hflow-title:hover { opacity: 0.8; }
+.hflow-collapsed .hflow-title { margin-bottom: 0; }
+/* Chevron */
+.hflow-chevron {
+    transition: transform 0.2s;
+    transform: rotate(-90deg);
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+.hflow-chevron.open {
+    transform: rotate(0deg);
+    opacity: 0.7;
+}
+/* Running/stopped dot */
+.hflow-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.dot-running {
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34,197,94,0.5);
+    animation: dot-pulse 2s ease-in-out infinite;
+}
+.dot-stopped {
+    background: rgba(100,116,139,0.4);
+}
+@keyframes dot-pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+/* Collapsed lane compact */
+.hflow-collapsed {
+    padding: 10px 20px;
+}
+.hflow-series .hflow-title { color: rgba(129,140,248,0.9); }
+.hflow-movies .hflow-title { color: rgba(192,132,252,0.9); }
+.hflow-music .hflow-title  { color: rgba(250,204,21,0.9); }
+.hflow-books .hflow-title  { color: rgba(52,211,153,0.9); }
+.hflow-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.hflow-stage-group {
+    display: flex;
+    align-items: flex-start;
+}
+.hflow-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+.hflow-node .flow-track-box,
+.hflow-branch-item .flow-track-box,
+.hflow-side .flow-track-box,
+.hflow-dup-badge .flow-track-box {
+    width: 80px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 4px 6px;
+    box-sizing: border-box;
+}
+.hflow-label {
+    font-size: 0.68rem;
+    color: rgba(148,163,184,0.85);
+    margin-top: 5px;
+    text-align: center;
+    white-space: nowrap;
+}
+/* Horizontal pipe */
+.hflow-pipe {
+    width: 36px;
+    height: 2px;
+    background: rgba(100,116,139,0.25);
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin-top: 22px;
+    transition: background 0.4s, box-shadow 0.4s;
+}
+.hflow-pipe.active {
+    background: linear-gradient(90deg, rgba(56,189,248,0.6), rgba(99,102,241,0.5));
+    box-shadow: 0 0 8px rgba(56,189,248,0.25);
+    animation: pipe-flow-h 1.5s ease-in-out infinite;
+}
+@keyframes pipe-flow-h {
+    0%,100% { opacity: 0.7; }
+    50%     { opacity: 1; }
+}
+/* Branch fan (vertical stack) */
+.hflow-branches {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    padding-left: 18px;
+    flex-shrink: 0;
+}
+.hflow-branches::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #4fc3f7 0%, #81c784 20%, #f472b6 40%, #ff7043 60%, #26c6da 80%, #8d6e63 100%);
+    opacity: 0.45;
+}
+.hflow-branch-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+.hflow-branch-item .flow-track-box {
+    width: 60px;
+    height: 32px;
+    padding: 2px 4px;
+}
+.hflow-branch-item::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    width: 12px;
+    height: 2px;
+    background: rgba(148,163,184,0.3);
+}
+.hflow-branch-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.br-tv .hflow-branch-label     { color: #4fc3f7; }
+.br-cartoons .hflow-branch-label { color: #81c784; }
+.br-anime .hflow-branch-label  { color: #f472b6; }
+.br-reality .hflow-branch-label { color: #ff7043; }
+.br-talkshow .hflow-branch-label { color: #26c6da; }
+.br-docs .hflow-branch-label   { color: #8d6e63; }
+/* Music branches */
+.br-music .hflow-branch-label      { color: #fbbf24; }
+.br-audiobooks .hflow-branch-label { color: #f97316; }
+/* Books branches */
+.br-books .hflow-branch-label  { color: #34d399; }
+.br-comics .hflow-branch-label { color: #60a5fa; }
+.br-manga .hflow-branch-label  { color: #f472b6; }
+/* Branch stem colors */
+.br-tv::before     { background: #4fc3f7; }
+.br-cartoons::before { background: #81c784; }
+.br-anime::before  { background: #f472b6; }
+.br-reality::before { background: #ff7043; }
+.br-talkshow::before { background: #26c6da; }
+.br-docs::before   { background: #8d6e63; }
+.br-music::before      { background: #fbbf24; }
+.br-audiobooks::before { background: #f97316; }
+.br-books::before  { background: #34d399; }
+.br-comics::before { background: #60a5fa; }
+.br-manga::before  { background: #f472b6; }
+/* End node (Library + Dup stacked) */
+.hflow-end {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.hflow-end .vflow-dest {
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+/* Side branches (Review / Duplicates — hang below) */
+.hflow-side, .hflow-dup-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 4px;
+}
+.hflow-side-pipe {
+    width: 2px;
+    height: 16px;
+    border-radius: 1px;
+}
+.side-warn .hflow-side-pipe {
+    background: linear-gradient(180deg, rgba(250,204,21,0.5), rgba(250,204,21,0.15));
+}
+.side-error .hflow-side-pipe {
+    background: linear-gradient(180deg, rgba(248,113,113,0.5), rgba(248,113,113,0.15));
+}
+
 /* Shared Failed / Review section */
 .pipeline-shared {
     display: flex;
@@ -993,6 +1228,11 @@ code {
 .flow-track-box.clr-talkshow       { border-color: rgba(38,198,218,0.2); }
 .flow-track-box.clr-docs           { border-color: rgba(141,110,99,0.2); }
 .flow-track-box.clr-standup        { border-color: rgba(171,71,188,0.2); }
+.flow-track-box.clr-music          { border-color: rgba(251,191,36,0.2); }
+.flow-track-box.clr-audiobooks     { border-color: rgba(249,115,22,0.2); }
+.flow-track-box.clr-books          { border-color: rgba(52,211,153,0.2); }
+.flow-track-box.clr-comics         { border-color: rgba(96,165,250,0.2); }
+.flow-track-box.clr-manga          { border-color: rgba(244,114,182,0.2); }
 .flow-track-box.clr-intake.active        { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.05); animation-name: breathe-intake; box-shadow: 0 2px 12px rgba(99,102,241,0.08); }
 .flow-track-box.clr-processing.active    { border-color: rgba(139,92,246,0.5);  background: rgba(139,92,246,0.05);  animation-name: breathe-processing; box-shadow: 0 2px 12px rgba(139,92,246,0.08); }
 .flow-track-box.clr-identify.active      { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.05); animation-name: breathe-identify; box-shadow: 0 2px 12px rgba(167,139,250,0.08); }
@@ -1004,6 +1244,11 @@ code {
 .flow-track-box.clr-talkshow.active      { border-color: rgba(38,198,218,0.5);  background: rgba(38,198,218,0.05);  animation-name: breathe-talkshow; box-shadow: 0 2px 12px rgba(38,198,218,0.08); }
 .flow-track-box.clr-docs.active          { border-color: rgba(141,110,99,0.5);  background: rgba(141,110,99,0.05);  animation-name: breathe-docs; box-shadow: 0 2px 12px rgba(141,110,99,0.08); }
 .flow-track-box.clr-standup.active       { border-color: rgba(171,71,188,0.5);  background: rgba(171,71,188,0.05);  animation-name: breathe-standup; box-shadow: 0 2px 12px rgba(171,71,188,0.08); }
+.flow-track-box.clr-music.active         { border-color: rgba(251,191,36,0.5);  background: rgba(251,191,36,0.05);  box-shadow: 0 2px 12px rgba(251,191,36,0.08); }
+.flow-track-box.clr-audiobooks.active    { border-color: rgba(249,115,22,0.5);  background: rgba(249,115,22,0.05);  box-shadow: 0 2px 12px rgba(249,115,22,0.08); }
+.flow-track-box.clr-books.active         { border-color: rgba(52,211,153,0.5);  background: rgba(52,211,153,0.05);  box-shadow: 0 2px 12px rgba(52,211,153,0.08); }
+.flow-track-box.clr-comics.active        { border-color: rgba(96,165,250,0.5);  background: rgba(96,165,250,0.05);  box-shadow: 0 2px 12px rgba(96,165,250,0.08); }
+.flow-track-box.clr-manga.active         { border-color: rgba(244,114,182,0.5); background: rgba(244,114,182,0.05); box-shadow: 0 2px 12px rgba(244,114,182,0.08); }
 .flow-track-box.clr-dup              { border-color: rgba(56,189,248,0.2); }
 .flow-track-box.clr-dup.active       { border-color: rgba(56,189,248,0.5); background: rgba(56,189,248,0.05); box-shadow: 0 2px 12px rgba(56,189,248,0.08); }
 .flow-track-empty {
@@ -1139,6 +1384,16 @@ code {
     clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
     filter: drop-shadow(0 0 3px rgba(168,85,247,0.3));
 }
+.tok-audio {
+    border-radius: 50%;
+    background: #fbbf24;
+    box-shadow: 0 0 4px rgba(251,191,36,0.3);
+}
+.tok-book {
+    border-radius: 3px;
+    background: #34d399;
+    box-shadow: 0 0 4px rgba(52,211,153,0.3);
+}
 
 /* Stage Colors — all token types inherit the container color (skipped when tracked) */
 .clr-intake .tok:not(.tracked), .clr-intake .tok-archive:not(.tracked)       { background: #6366f1; }
@@ -1152,6 +1407,11 @@ code {
 .clr-talkshow .tok:not(.tracked), .clr-talkshow .tok-archive:not(.tracked)   { background: #26c6da; }
 .clr-docs .tok:not(.tracked), .clr-docs .tok-archive:not(.tracked)           { background: #8d6e63; }
 .clr-standup .tok:not(.tracked), .clr-standup .tok-archive:not(.tracked)     { background: #ab47bc; }
+.clr-music .tok:not(.tracked), .clr-music .tok-archive:not(.tracked)         { background: #fbbf24; }
+.clr-audiobooks .tok:not(.tracked), .clr-audiobooks .tok-archive:not(.tracked) { background: #f97316; }
+.clr-books .tok:not(.tracked), .clr-books .tok-archive:not(.tracked)         { background: #34d399; }
+.clr-comics .tok:not(.tracked), .clr-comics .tok-archive:not(.tracked)       { background: #60a5fa; }
+.clr-manga .tok:not(.tracked), .clr-manga .tok-archive:not(.tracked)         { background: #f472b6; }
 .clr-dup .tok:not(.tracked), .clr-dup .tok-archive:not(.tracked)             { background: #38bdf8; }
 /* Failed = red, Review = amber (scoped via side-branch wrappers) */
 .side-error .tok:not(.tracked), .side-error .tok-archive:not(.tracked)       { background: #ef4444; }
@@ -2496,6 +2756,8 @@ select.field-input {
 [data-theme="light"] .tok-video { box-shadow: 0 0 3px rgba(59,130,246,0.25); }
 [data-theme="light"] .tok-folder { box-shadow: 0 0 3px rgba(245,158,11,0.25); }
 [data-theme="light"] .tok-archive { filter: drop-shadow(0 0 2px rgba(168,85,247,0.25)); }
+[data-theme="light"] .tok-audio { box-shadow: 0 0 3px rgba(251,191,36,0.25); }
+[data-theme="light"] .tok-book { box-shadow: 0 0 3px rgba(52,211,153,0.25); }
 
 /* ── Responsive ── */
 @media (max-width: 992px) {

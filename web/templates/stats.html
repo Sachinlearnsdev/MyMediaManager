@@ -156,6 +156,51 @@
                 <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_documentaries)"></span>
                 <span class="stats-route-pct" x-text="routePct('to_documentaries') + '%'"></span>
             </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Music</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#e040fb;"
+                         :style="'width:' + routePct('to_music') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_music)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_music') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Audiobooks</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#f4511e;"
+                         :style="'width:' + routePct('to_audiobooks') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_audiobooks)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_audiobooks') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Books</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#7e57c2;"
+                         :style="'width:' + routePct('to_books') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_books)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_books') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Comics</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#fdd835;"
+                         :style="'width:' + routePct('to_comics') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_comics)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_comics') + '%'"></span>
+            </div>
+            <div class="stats-route-item">
+                <span class="stats-route-label">Manga</span>
+                <div class="stats-route-bar-wrap">
+                    <div class="stats-route-bar" style="background:#66bb6a;"
+                         :style="'width:' + routePct('to_manga') + '%'"></div>
+                </div>
+                <span class="stats-route-count" x-text="fmt(stats.processors.classifier.to_manga)"></span>
+                <span class="stats-route-pct" x-text="routePct('to_manga') + '%'"></span>
+            </div>
         </div>
     </div>
 
@@ -195,6 +240,26 @@
                 <div class="stats-lib-type" style="border-left:3px solid #8d6e63">
                     <span class="stats-lib-count" x-text="stats.library.by_type.documentaries"></span>
                     <span class="stats-lib-label">Docs</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #e040fb">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.music"></span>
+                    <span class="stats-lib-label">Music</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #f4511e">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.audiobooks"></span>
+                    <span class="stats-lib-label">Audiobooks</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #7e57c2">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.books"></span>
+                    <span class="stats-lib-label">Books</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #fdd835">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.comics"></span>
+                    <span class="stats-lib-label">Comics</span>
+                </div>
+                <div class="stats-lib-type" style="border-left:3px solid #66bb6a">
+                    <span class="stats-lib-count" x-text="stats.library.by_type.manga"></span>
+                    <span class="stats-lib-label">Manga</span>
                 </div>
             </div>
         </div>
@@ -272,6 +337,78 @@
                             </td>
                             <td x-text="show.seasons || '-'"></td>
                             <td style="font-weight:600" x-text="fmt(show.hits)"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ─── TOP ARTISTS ─── -->
+    <div class="card" x-show="stats.library.top_artists && stats.library.top_artists.length > 0">
+        <div class="card-header">
+            <h3 class="card-title">Top Artists</h3>
+            <span class="badge badge-sm" style="font-size:0.68rem">by cache hits</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th>Artist</th>
+                        <th style="width:70px">Genre</th>
+                        <th style="width:65px">Albums</th>
+                        <th style="width:65px">Hits</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(artist, idx) in stats.library.top_artists" :key="artist.name">
+                        <tr>
+                            <td>
+                                <span class="top-show-rank" :class="idx < 3 ? 'rank-top' : ''" x-text="idx + 1"></span>
+                            </td>
+                            <td><strong x-text="artist.name"></strong></td>
+                            <td>
+                                <span class="badge badge-sm" x-text="artist.genre || '-'" style="font-size:0.7rem;text-transform:capitalize"></span>
+                            </td>
+                            <td x-text="artist.albums || '-'"></td>
+                            <td style="font-weight:600" x-text="fmt(artist.hits)"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ─── TOP AUTHORS ─── -->
+    <div class="card" x-show="stats.library.top_authors && stats.library.top_authors.length > 0">
+        <div class="card-header">
+            <h3 class="card-title">Top Authors</h3>
+            <span class="badge badge-sm" style="font-size:0.68rem">by cache hits</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th>Author</th>
+                        <th style="width:70px">Genre</th>
+                        <th style="width:65px">Books</th>
+                        <th style="width:65px">Hits</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(author, idx) in stats.library.top_authors" :key="author.name">
+                        <tr>
+                            <td>
+                                <span class="top-show-rank" :class="idx < 3 ? 'rank-top' : ''" x-text="idx + 1"></span>
+                            </td>
+                            <td><strong x-text="author.name"></strong></td>
+                            <td>
+                                <span class="badge badge-sm" x-text="author.genre || '-'" style="font-size:0.7rem;text-transform:capitalize"></span>
+                            </td>
+                            <td x-text="author.books || '-'"></td>
+                            <td style="font-weight:600" x-text="fmt(author.hits)"></td>
                         </tr>
                     </template>
                 </tbody>
@@ -544,6 +681,11 @@ function statsApp() {
             { id: 'talkshow',      label: 'Talk Shows',    color: '#26c6da' },
             { id: 'documentaries', label: 'Documentaries', color: '#8d6e63' },
             { id: 'movies',        label: 'Movies',        color: '#ffb74d' },
+            { id: 'music',         label: 'Music',         color: '#e040fb' },
+            { id: 'audiobooks',    label: 'Audiobooks',    color: '#f4511e' },
+            { id: 'books',         label: 'Books',         color: '#7e57c2' },
+            { id: 'comics',        label: 'Comics',        color: '#fdd835' },
+            { id: 'manga',         label: 'Manga',         color: '#66bb6a' },
         ],
 
         fmt(n) {
@@ -561,7 +703,7 @@ function statsApp() {
 
         routePct(key) {
             const c = this.stats.processors.classifier;
-            const total = (c.to_anime || 0) + (c.to_tv || 0) + (c.to_cartoons || 0) + (c.to_reality || 0) + (c.to_talkshow || 0) + (c.to_documentaries || 0);
+            const total = (c.to_anime || 0) + (c.to_tv || 0) + (c.to_cartoons || 0) + (c.to_reality || 0) + (c.to_talkshow || 0) + (c.to_documentaries || 0) + (c.to_music || 0) + (c.to_audiobooks || 0) + (c.to_books || 0) + (c.to_comics || 0) + (c.to_manga || 0);
             if (total === 0) return 0;
             return Math.round(((c[key] || 0) / total) * 100);
         },
@@ -589,6 +731,7 @@ function statsApp() {
                 this.stats = await resp.json();
             } catch (e) {
                 console.error('Stats refresh failed:', e);
+                window.toast.error('Failed to refresh stats');
             }
             this.loading = false;
         },
@@ -602,6 +745,7 @@ function statsApp() {
                 this.cacheDetails = await resp.json();
             } catch (e) {
                 console.error('Cache details failed:', e);
+                window.toast.error('Failed to load cache details');
             }
             this.cacheLoading = false;
         },

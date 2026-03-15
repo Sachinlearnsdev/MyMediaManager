@@ -36,6 +36,21 @@ VIDEO_EXTS = frozenset({
 
 ARCHIVE_EXTS = frozenset({".rar", ".zip", ".7z"})
 
+AUDIO_EXTS = frozenset({
+    ".mp3", ".flac", ".m4a", ".ogg", ".opus", ".wma", ".aac",
+    ".wav", ".aiff", ".alac", ".m4b", ".ape", ".wv"
+})
+
+AUDIOBOOK_EXTS = frozenset({".m4b"})  # Definitively audiobook formats
+
+BOOK_EXTS = frozenset({
+    ".epub", ".mobi", ".azw", ".azw3", ".pdf", ".fb2", ".lit", ".djvu", ".txt"
+})
+
+COMIC_EXTS = frozenset({
+    ".cbz", ".cbr", ".cb7", ".cbt"
+})
+
 JUNK_EXTENSIONS = frozenset({
     '.txt', '.nfo', '.exe', '.bat', '.sh', '.msi', '.jpg', '.png',
     '.jpeg', '.bmp', '.gif', '.url', '.lnk', '.sfv', '.md5'
@@ -62,6 +77,11 @@ TRAKT_API_BASE = "https://api.trakt.tv"
 TVMAZE_API_BASE = "https://api.tvmaze.com"
 KITSU_API_BASE = "https://kitsu.io"
 OMDB_API_BASE = "http://www.omdbapi.com"
+MUSICBRAINZ_API_BASE = "https://musicbrainz.org/ws/2"
+ACOUSTID_API_BASE = "https://api.acoustid.org/v2"
+OPENLIBRARY_API_BASE = "https://openlibrary.org"
+GOOGLEBOOKS_API_BASE = "https://www.googleapis.com/books/v1"
+COMICVINE_API_BASE = "https://comicvine.gamespot.com/api"
 
 # ============================================================
 # TIMING & THRESHOLDS
@@ -85,6 +105,10 @@ CONFIDENCE_CLASSIFIER = _tuning.get('confidence_classifier', 40)
 CONFIDENCE_TV = _tuning.get('confidence_tv', 60)
 CONFIDENCE_CARTOON = _tuning.get('confidence_cartoon', 60)
 CONFIDENCE_MOVIE = _tuning.get('confidence_movie', 75)
+CONFIDENCE_MUSIC = _tuning.get('confidence_music', 60)
+CONFIDENCE_AUDIOBOOK = _tuning.get('confidence_audiobook', 60)
+CONFIDENCE_BOOK = _tuning.get('confidence_book', 60)
+CONFIDENCE_COMIC = _tuning.get('confidence_comic', 60)
 
 # ============================================================
 # NOISE PATTERNS (Built-in, for structpilot)

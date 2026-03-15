@@ -85,44 +85,22 @@ class SeriesProcessor:
     def _write_reason(self, dest_path: Path, confidence: int, candidate, best_match,
                        best_source=None, best_id=None):
         """Write a .reason.json sidecar next to a file moved to Review."""
-        try:
-            data = {
-                "source": f"seriesprocessor_{self.media_type}",
-                "reason": "low_confidence",
-                "confidence": confidence, "threshold": self.threshold,
-                "candidate": candidate, "best_match": best_match,
-                "detail": f"Best confidence {confidence}% below threshold {self.threshold}%",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-            # Store match data for the Approve feature
-            if best_match and best_source and best_id:
-                data["match_data"] = {
-                    "source": best_source,
-                    "source_id": str(best_id),
-                    "title": best_match,
-                    "media_type": self.media_type,
-                }
-            reason_path = dest_path.with_name(dest_path.name + ".reason.json")
-            reason_path.write_text(json.dumps(data, indent=2), encoding='utf-8')
-        except Exception:
-            pass
+        extra = None
+        if best_match and best_source and best_id:
+            extra = {"match_data": {
+                "source": best_source,
+                "source_id": str(best_id),
+                "title": best_match,
+                "media_type": self.media_type,
+            }}
+        common.write_reason_sidecar(dest_path, f"seriesprocessor_{self.media_type}",
+                                    confidence, self.threshold, candidate, best_match,
+                                    extra=extra)
 
     def _write_dup(self, dest_path: Path, final_name: str, existing_path: Path):
         """Write a .dup.json sidecar next to a file moved to Duplicates."""
-        try:
-            dup_path = dest_path.with_name(dest_path.name + ".dup.json")
-            existing_size = existing_path.stat().st_size if existing_path.exists() else 0
-            new_size = dest_path.stat().st_size if dest_path.exists() else 0
-            dup_path.write_text(json.dumps({
-                "source": f"seriesprocessor_{self.media_type}",
-                "final_name": final_name,
-                "existing_path": str(existing_path),
-                "existing_size_mb": round(existing_size / (1024*1024), 1),
-                "new_size_mb": round(new_size / (1024*1024), 1),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }, indent=2), encoding='utf-8')
-        except Exception:
-            pass
+        common.write_dup_sidecar(dest_path, f"seriesprocessor_{self.media_type}",
+                                 final_name, existing_path)
 
     def process_file(self, file_path: Path):
         try:
@@ -280,7 +258,14 @@ class SeriesProcessor:
                 api_ids,
                 raw_name=candidate, confidence=int(max_score)
             )
-            # Noise learner disabled: write-only system (structpilot never reads learned patterns)
+            # Noise learner: always learns (regardless of apply toggle)
+            try:
+                self.noise_learner.learn_from_match(
+                    candidate, final_show_name, file_path.name,
+                    final_show_name, category="video"
+                )
+            except Exception:
+                pass
 
             # --- BUILD PATH ---
             safe_show = self.brain.sanitize_for_filesystem(final_show_name)

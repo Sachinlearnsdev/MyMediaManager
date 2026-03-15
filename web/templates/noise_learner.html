@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+{% block title %}Noise Learner - MyMediaManager{% endblock %}
+
+{% block content %}
+<div x-data="noiseLearnerApp()" x-init="load()">
+    <div class="page-header">
+        <h2>Noise Learner</h2>
+    </div>
+
+    <!-- Warning Banner -->
+    <div class="noise-warning-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <div>
+            <strong>Experimental Feature</strong>
+            <p style="margin:0.25rem 0 0;opacity:0.85">
+                The noise learner automatically identifies potential noise words from filenames by comparing raw names
+                to API-confirmed titles. It can make mistakes &mdash; a word flagged as noise might be a legitimate part
+                of another title. Patterns are <strong>always learned</strong> in the background, but only
+                <strong>applied to filename cleaning when you enable it below</strong>. Review and approve patterns before enabling.
+            </p>
+        </div>
+    </div>
+
+    <!-- Master Toggle -->
+    <div class="card" style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+                <h3 class="card-title" style="margin:0">Apply Learned Patterns</h3>
+                <p class="settings-desc" style="margin:0.25rem 0 0">
+                    When enabled, learned noise patterns are stripped from filenames during processing.
+                    When disabled, the system still learns but does not apply patterns.
+                </p>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" :checked="applyEnabled" @change="toggleApply($event.target.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="noise-toggle-status" :class="applyEnabled ? 'active' : 'inactive'">
+            <span x-text="applyEnabled ? 'Active: Learned patterns are being applied to filename cleaning' : 'Inactive: Learning only (patterns are not applied)'"></span>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid-3" style="margin-bottom:1.5rem">
+        <div class="card stat-card">
+            <div class="stat-value" x-text="stats.total || 0"></div>
+            <div class="stat-label">Learned Patterns</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-value noise-pending" x-text="stats.pending || 0"></div>
+            <div class="stat-label">Pending Review</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-value noise-approved" x-text="stats.approved || 0"></div>
+            <div class="stat-label">Approved</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-value noise-rejected" x-text="stats.rejected || 0"></div>
+            <div class="stat-label">Rejected</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-value" x-text="stats.candidates || 0"></div>
+            <div class="stat-label">Candidates</div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-value" x-text="stats.title_words_count || 0"></div>
+            <div class="stat-label">Protected Title Words</div>
+        </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="settings-tabs" style="margin-bottom:1rem">
+        <button class="settings-tab" :class="{ active: category === 'video' }" @click="category='video'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            Video
+            <span class="badge badge-sm" x-text="getCategoryCount('video')"></span>
+        </button>
+        <button class="settings-tab" :class="{ active: category === 'music' }" @click="category='music'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+            </svg>
+            Music
+            <span class="badge badge-sm" x-text="getCategoryCount('music')"></span>
+        </button>
+        <button class="settings-tab" :class="{ active: category === 'books' }" @click="category='books'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            Books
+            <span class="badge badge-sm" x-text="getCategoryCount('books')"></span>
+        </button>
+    </div>
+
+    <!-- Status Filter -->
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center">
+        <span style="opacity:0.6;font-size:0.85rem">Filter:</span>
+        <button class="btn btn-sm" :class="statusFilter === 'all' ? 'btn-primary' : 'btn-ghost'" @click="statusFilter='all'">All</button>
+        <button class="btn btn-sm" :class="statusFilter === 'pending' ? 'btn-primary' : 'btn-ghost'" @click="statusFilter='pending'">Pending</button>
+        <button class="btn btn-sm" :class="statusFilter === 'approved' ? 'btn-primary' : 'btn-ghost'" @click="statusFilter='approved'">Approved</button>
+        <button class="btn btn-sm" :class="statusFilter === 'rejected' ? 'btn-primary' : 'btn-ghost'" @click="statusFilter='rejected'">Rejected</button>
+    </div>
+
+    <!-- Learned Patterns Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Learned Patterns &mdash; <span x-text="category.charAt(0).toUpperCase() + category.slice(1)"></span></h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table" x-show="filteredPatterns().length > 0">
+                <thead>
+                    <tr>
+                        <th>Pattern</th>
+                        <th>Status</th>
+                        <th>Source</th>
+                        <th>Hits</th>
+                        <th>Seen In</th>
+                        <th>Examples</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="p in filteredPatterns()" :key="p.pattern">
+                        <tr>
+                            <td><code x-text="p.pattern" style="font-weight:600"></code></td>
+                            <td>
+                                <span class="noise-badge"
+                                      :class="'noise-' + p.status"
+                                      x-text="p.status"></span>
+                                <template x-if="p.status === 'rejected' && p.rejection_reason">
+                                    <span class="noise-reason-hint" :title="p.rejection_reason">?</span>
+                                </template>
+                            </td>
+                            <td><span style="opacity:0.6;font-size:0.85rem" x-text="p.source"></span></td>
+                            <td x-text="p.hit_count"></td>
+                            <td>
+                                <div class="noise-shows-list">
+                                    <template x-for="s in (p.shows || []).slice(0,3)" :key="s">
+                                        <span class="noise-show-tag" x-text="s"></span>
+                                    </template>
+                                    <span x-show="(p.shows||[]).length > 3" style="opacity:0.5;font-size:0.8rem"
+                                          x-text="'+' + ((p.shows||[]).length - 3) + ' more'"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="max-width:250px;overflow:hidden">
+                                    <template x-for="ex in (p.examples || []).slice(0,2)" :key="ex">
+                                        <div class="noise-example" x-text="ex"></div>
+                                    </template>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display:flex;gap:0.35rem">
+                                    <button class="btn btn-sm btn-ghost noise-action-btn"
+                                            title="Approve"
+                                            x-show="p.status !== 'approved'"
+                                            @click="approvePattern(p.pattern)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" width="16" height="16">
+                                            <polyline points="20 6 9 17 4 12"/>
+                                        </svg>
+                                    </button>
+                                    <button class="btn btn-sm btn-ghost noise-action-btn"
+                                            title="Reject"
+                                            x-show="p.status !== 'rejected'"
+                                            @click="openRejectModal(p.pattern)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" width="16" height="16">
+                                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                    </button>
+                                    <button class="btn btn-sm btn-ghost noise-action-btn"
+                                            title="Delete"
+                                            @click="deletePattern(p.pattern)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="opacity:0.5">
+                                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/>
+                                            <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+            <p x-show="filteredPatterns().length === 0" style="padding:1.5rem;text-align:center;opacity:0.5">
+                No <span x-text="statusFilter === 'all' ? '' : statusFilter"></span> patterns in <span x-text="category"></span> category.
+            </p>
+        </div>
+    </div>
+
+    <!-- Candidates Section -->
+    <div class="card" style="margin-top:1.5rem">
+        <div class="card-header">
+            <h3 class="card-title">Candidates &mdash; <span x-text="category.charAt(0).toUpperCase() + category.slice(1)"></span></h3>
+            <span style="opacity:0.5;font-size:0.85rem">Tokens seen in fewer than 3 different shows (not yet promoted)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table" x-show="getCandidates().length > 0">
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Shows Seen</th>
+                        <th>Hit Count</th>
+                        <th>Progress</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="[token, cand] in getCandidates()" :key="token">
+                        <tr>
+                            <td><code x-text="token"></code></td>
+                            <td>
+                                <div class="noise-shows-list">
+                                    <template x-for="s in (cand.shows || []).slice(0,3)" :key="s">
+                                        <span class="noise-show-tag" x-text="s"></span>
+                                    </template>
+                                </div>
+                            </td>
+                            <td x-text="cand.hit_count || 0"></td>
+                            <td>
+                                <div class="noise-progress-bar">
+                                    <div class="noise-progress-fill"
+                                         :style="'width:' + Math.min(100, ((cand.shows||[]).length / 3) * 100) + '%'"></div>
+                                </div>
+                                <span style="font-size:0.75rem;opacity:0.5" x-text="(cand.shows||[]).length + '/3 shows'"></span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-ghost noise-action-btn" title="Delete candidate"
+                                        @click="deletePattern(token)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="opacity:0.5">
+                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/>
+                                        <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+            <p x-show="getCandidates().length === 0" style="padding:1rem;text-align:center;opacity:0.5">
+                No candidates in <span x-text="category"></span> category yet.
+            </p>
+        </div>
+    </div>
+
+    <!-- Manual Add -->
+    <div class="card" style="margin-top:1.5rem">
+        <div class="card-header">
+            <h3 class="card-title">Add Manual Pattern</h3>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+            <div>
+                <label class="settings-label">Pattern</label>
+                <input type="text" x-model="manualPattern" placeholder="e.g. YIFY"
+                       class="settings-input" style="width:200px"
+                       @keyup.enter="addManual()">
+            </div>
+            <div>
+                <label class="settings-label">Category</label>
+                <select x-model="manualCategory" class="settings-input" style="width:120px">
+                    <option value="video">Video</option>
+                    <option value="music">Music</option>
+                    <option value="books">Books</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-sm" @click="addManual()" :disabled="!manualPattern.trim()">
+                Add Pattern
+            </button>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal-overlay" x-show="rejectModal" x-cloak @click.self="rejectModal=false">
+        <div class="modal-content">
+            <h3 style="margin-bottom:1rem">Reject Pattern: <code x-text="rejectTarget"></code></h3>
+            <p style="opacity:0.7;margin-bottom:0.75rem">
+                Why is this pattern wrong? This helps improve future accuracy.
+            </p>
+            <textarea x-model="rejectReason" placeholder="e.g. 'This is actually a show name' or 'Part of album title'"
+                      class="settings-input" style="width:100%;min-height:80px;resize:vertical"></textarea>
+            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+                <button class="btn btn-sm btn-ghost" @click="rejectModal=false">Cancel</button>
+                <button class="btn btn-sm" style="background:var(--danger);color:white" @click="confirmReject()">
+                    Reject Pattern
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function noiseLearnerApp() {
+    return {
+        data: null,
+        stats: {},
+        category: 'video',
+        statusFilter: 'all',
+        applyEnabled: false,
+        manualPattern: '',
+        manualCategory: 'video',
+        rejectModal: false,
+        rejectTarget: '',
+        rejectReason: '',
+
+        async load() {
+            try {
+                const res = await fetch('/api/noise-learner');
+                const json = await res.json();
+                this.data = json.data;
+                this.stats = json.stats;
+                this.applyEnabled = json.stats.apply_enabled || false;
+            } catch (e) {
+                console.error('Failed to load noise learner data:', e);
+            }
+        },
+
+        getCategoryData() {
+            if (!this.data || !this.data.categories) return { learned_patterns: [], candidate_patterns: {} };
+            return this.data.categories[this.category] || { learned_patterns: [], candidate_patterns: {} };
+        },
+
+        filteredPatterns() {
+            const cat = this.getCategoryData();
+            const patterns = cat.learned_patterns || [];
+            if (this.statusFilter === 'all') return patterns;
+            return patterns.filter(p => p.status === this.statusFilter);
+        },
+
+        getCandidates() {
+            const cat = this.getCategoryData();
+            const cands = cat.candidate_patterns || {};
+            return Object.entries(cands);
+        },
+
+        getCategoryCount(cat) {
+            if (!this.data || !this.data.categories) return 0;
+            const c = this.data.categories[cat];
+            return c ? (c.learned_patterns || []).length : 0;
+        },
+
+        async toggleApply(enabled) {
+            try {
+                const res = await fetch('/api/noise-learner/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+                const json = await res.json();
+                this.applyEnabled = json.apply_enabled;
+                this._toast(enabled ? 'Noise patterns will now be applied' : 'Pattern application disabled');
+            } catch (e) {
+                this._toast('Failed to toggle', true);
+            }
+        },
+
+        async approvePattern(pattern) {
+            try {
+                await fetch('/api/noise-learner/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pattern, category: this.category })
+                });
+                this._toast(`Approved: ${pattern}`);
+                await this.load();
+            } catch (e) {
+                this._toast('Failed to approve', true);
+            }
+        },
+
+        openRejectModal(pattern) {
+            this.rejectTarget = pattern;
+            this.rejectReason = '';
+            this.rejectModal = true;
+        },
+
+        async confirmReject() {
+            try {
+                await fetch('/api/noise-learner/reject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pattern: this.rejectTarget,
+                        category: this.category,
+                        reason: this.rejectReason
+                    })
+                });
+                this.rejectModal = false;
+                this._toast(`Rejected: ${this.rejectTarget}`);
+                await this.load();
+            } catch (e) {
+                this._toast('Failed to reject', true);
+            }
+        },
+
+        async deletePattern(pattern) {
+            if (!confirm(`Delete pattern "${pattern}"? This cannot be undone.`)) return;
+            try {
+                await fetch('/api/noise-learner/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pattern, category: this.category })
+                });
+                this._toast(`Deleted: ${pattern}`);
+                await this.load();
+            } catch (e) {
+                this._toast('Failed to delete', true);
+            }
+        },
+
+        async addManual() {
+            const pat = this.manualPattern.trim();
+            if (!pat) return;
+            try {
+                const res = await fetch('/api/noise-learner/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pattern: pat, category: this.manualCategory })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    this._toast(`Added: ${pat}`);
+                    this.manualPattern = '';
+                    await this.load();
+                } else {
+                    this._toast('Pattern already exists or is invalid', true);
+                }
+            } catch (e) {
+                this._toast('Failed to add pattern', true);
+            }
+        },
+
+        _toast(msg, isError = false) {
+            if (typeof Toastify !== 'undefined') {
+                Toastify({
+                    text: msg,
+                    duration: 3000,
+                    gravity: 'bottom',
+                    position: 'right',
+                    style: { background: isError ? 'var(--danger)' : 'var(--success)' }
+                }).showToast();
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

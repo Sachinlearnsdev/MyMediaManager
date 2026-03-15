@@ -31,8 +31,8 @@ class RecoveryManager:
         moved = []
         pipelines = self._get_pipelines(pipeline)
         for name, paths in pipelines.items():
-            processing = Path(paths['processing'])
-            drop = Path(paths['system_drop'])
+            processing = Path(paths.get('processing', ''))
+            drop = Path(paths.get('system_drop', ''))
             if not processing.exists():
                 continue
             for item in processing.iterdir():
@@ -52,8 +52,8 @@ class RecoveryManager:
         moved = []
         pipelines = self._get_pipelines(pipeline)
         for name, paths in pipelines.items():
-            failed = Path(paths['failed'])
-            drop = Path(paths['system_drop'])
+            failed = Path(paths.get('failed', ''))
+            drop = Path(paths.get('system_drop', ''))
             if not failed.exists():
                 continue
             for item in failed.iterdir():
@@ -101,6 +101,34 @@ class RecoveryManager:
                     except Exception as e:
                         logger.error(f"RETRY REVIEW ERROR: {item.name}: {e}")
 
+        if pipeline in ("music", "all"):
+            rev = Path(paths.get('music_pipeline', {}).get('review', ''))
+            proc = Path(paths.get('music_pipeline', {}).get('processing', ''))
+            if rev.exists() and proc.exists():
+                for item in rev.iterdir():
+                    if item.name.startswith('.'):
+                        continue
+                    try:
+                        shutil.move(str(item), str(proc / item.name))
+                        moved.append({"file": item.name, "pipeline": "music"})
+                        logger.info(f"RETRY REVIEW: {item.name} -> {proc}")
+                    except Exception as e:
+                        logger.error(f"RETRY REVIEW ERROR: {item.name}: {e}")
+
+        if pipeline in ("books", "all"):
+            rev = Path(paths.get('books_pipeline', {}).get('review', ''))
+            proc = Path(paths.get('books_pipeline', {}).get('processing', ''))
+            if rev.exists() and proc.exists():
+                for item in rev.iterdir():
+                    if item.name.startswith('.'):
+                        continue
+                    try:
+                        shutil.move(str(item), str(proc / item.name))
+                        moved.append({"file": item.name, "pipeline": "books"})
+                        logger.info(f"RETRY REVIEW: {item.name} -> {proc}")
+                    except Exception as e:
+                        logger.error(f"RETRY REVIEW ERROR: {item.name}: {e}")
+
         return {"action": "retry_review", "moved": moved, "count": len(moved)}
 
     def nuclear_reset(self) -> dict:
@@ -111,8 +139,11 @@ class RecoveryManager:
         self.pm.stop_all()
 
         # 2. Backup .Work/
-        data_root = Path(self.config['paths']['roots']['data'])
-        manager_root = Path(self.config['paths']['roots']['manager'])
+        data_root = Path(self.config.get('paths', {}).get('roots', {}).get('data', ''))
+        manager_root = Path(self.config.get('paths', {}).get('roots', {}).get('manager', ''))
+        if not str(data_root) or not str(manager_root):
+            logger.error("NUCLEAR RESET: Missing paths.roots.data or paths.roots.manager in config")
+            return {"error": "Missing data or manager root path in config"}
         work_root = data_root / ".Work"
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_dir = manager_root / f"recovery_backup_{timestamp}"
@@ -165,7 +196,7 @@ class RecoveryManager:
 
         if cache_type in ("api", "all"):
             cache_root = Path(cache_cfg.get('root', 'cache'))
-            for subdir in ["tv", "anime", "movies", "cartoons", "classifier", "reality", "talkshow", "documentaries"]:
+            for subdir in ["tv", "anime", "movies", "cartoons", "classifier", "reality", "talkshow", "documentaries", "music", "audiobooks", "books", "comics", "manga"]:
                 d = cache_root / subdir
                 if d.exists():
                     shutil.rmtree(str(d))
@@ -201,7 +232,7 @@ class RecoveryManager:
         """Delete all files in Review folders."""
         paths = self.config.get('paths', {})
         deleted = 0
-        for pipeline_key in ('series_pipeline', 'movie_pipeline'):
+        for pipeline_key in ('series_pipeline', 'movie_pipeline', 'music_pipeline', 'books_pipeline'):
             rev = Path(paths.get(pipeline_key, {}).get('review', ''))
             if rev.exists():
                 for item in rev.iterdir():
@@ -242,7 +273,7 @@ class RecoveryManager:
 
         if rev_max_days > 0:
             paths = self.config.get('paths', {})
-            for pipeline_key in ('series_pipeline', 'movie_pipeline'):
+            for pipeline_key in ('series_pipeline', 'movie_pipeline', 'music_pipeline', 'books_pipeline'):
                 rev = Path(paths.get(pipeline_key, {}).get('review', ''))
                 if rev.exists():
                     for item in rev.iterdir():
@@ -269,7 +300,7 @@ class RecoveryManager:
         result = {"processing": [], "failed": [], "review": []}
         paths = self.config.get('paths', {})
 
-        for pipeline_key in ('series_pipeline', 'movie_pipeline'):
+        for pipeline_key in ('series_pipeline', 'movie_pipeline', 'music_pipeline', 'books_pipeline'):
             pipeline = paths.get(pipeline_key, {})
             for folder_type in ('processing', 'failed'):
                 folder = Path(pipeline.get(folder_type, ''))
@@ -295,8 +326,12 @@ class RecoveryManager:
     def _get_pipelines(self, pipeline: str) -> dict:
         paths = self.config.get('paths', {})
         result = {}
-        if pipeline in ("series", "both"):
+        if pipeline in ("series", "both", "all", None):
             result["series"] = paths.get('series_pipeline', {})
-        if pipeline in ("movies", "both"):
+        if pipeline in ("movies", "both", "all", None):
             result["movies"] = paths.get('movie_pipeline', {})
+        if pipeline in ("music", "all", None):
+            result["music"] = paths.get('music_pipeline', {})
+        if pipeline in ("books", "all", None):
+            result["books"] = paths.get('books_pipeline', {})
         return result

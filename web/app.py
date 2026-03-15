@@ -31,6 +31,7 @@ from web.log_tailer import LogTailer
 from web.config_manager import ConfigManager
 from web.recovery import RecoveryManager
 from web.api_stats import APIStats
+from web.noise_manager import NoiseManager
 
 socketio = SocketIO()
 
@@ -41,10 +42,11 @@ log_tailer: LogTailer = None
 config_mgr: ConfigManager = None
 recovery_mgr: RecoveryManager = None
 api_stats: APIStats = None
+noise_mgr: NoiseManager = None
 
 
 def create_app() -> Flask:
-    global pm, pipeline_mon, log_tailer, config_mgr, recovery_mgr, api_stats
+    global pm, pipeline_mon, log_tailer, config_mgr, recovery_mgr, api_stats, noise_mgr
 
     app = Flask(
         __name__,
@@ -73,6 +75,7 @@ def create_app() -> Flask:
     log_tailer = LogTailer(log_dir)
     recovery_mgr = RecoveryManager(cfg, pm)
     api_stats = APIStats(cfg)
+    noise_mgr = NoiseManager(cfg)
 
     # Register blueprints
     app.register_blueprint(auth_bp)
@@ -146,6 +149,11 @@ def create_app() -> Flask:
         stuck = recovery_mgr.get_stuck_files()
         cfg = load_config()
         return render_template('recovery.html', stuck=stuck, config=cfg)
+
+    @main_bp.route('/noise-learner')
+    @login_required
+    def noise_learner():
+        return render_template('noise_learner.html')
 
     @main_bp.route('/library')
     @login_required
@@ -447,6 +455,8 @@ def create_app() -> Flask:
         review_dirs = {
             'shows': Path(paths_cfg.get('series_pipeline', {}).get('review', '')),
             'movies': Path(paths_cfg.get('movie_pipeline', {}).get('review', '')),
+            'music': Path(paths_cfg.get('music_pipeline', {}).get('review', '')),
+            'books': Path(paths_cfg.get('books_pipeline', {}).get('review', '')),
         }
         files = []
         for pipeline, rdir in review_dirs.items():
@@ -485,7 +495,8 @@ def create_app() -> Flask:
         if '/' in new_name or '\\' in new_name or '..' in new_name:
             return jsonify({'error': 'Invalid filename'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         rdir = Path(paths_cfg.get(pipe_key, {}).get('review', ''))
         old_path = rdir / old_name
         new_path = rdir / new_name
@@ -514,12 +525,10 @@ def create_app() -> Flask:
         if not filename:
             return jsonify({'error': 'Missing name'}), 400
         paths_cfg = cfg.get('paths', {})
-        if pipeline == 'shows':
-            rdir = Path(paths_cfg.get('series_pipeline', {}).get('review', ''))
-            dest = Path(paths_cfg.get('series_pipeline', {}).get('processing', ''))
-        else:
-            rdir = Path(paths_cfg.get('movie_pipeline', {}).get('review', ''))
-            dest = Path(paths_cfg.get('movie_pipeline', {}).get('processing', ''))
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
+        rdir = Path(paths_cfg.get(pipe_key, {}).get('review', ''))
+        dest = Path(paths_cfg.get(pipe_key, {}).get('processing', ''))
         src = rdir / filename
         if not src.exists():
             return jsonify({'error': 'File not found'}), 404
@@ -545,7 +554,8 @@ def create_app() -> Flask:
         if not filename:
             return jsonify({'error': 'Missing name'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         rdir = Path(paths_cfg.get(pipe_key, {}).get('review', ''))
         trash = Path(paths_cfg.get('trash_root', 'Trash'))
         src = rdir / filename
@@ -569,15 +579,25 @@ def create_app() -> Flask:
         if not filename or '/' in filename or '\\' in filename or '..' in filename:
             return jsonify({'error': 'Invalid filename'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         rdir = Path(paths_cfg.get(pipe_key, {}).get('review', ''))
         file_path = rdir / filename
         if not file_path.exists():
             return jsonify({'error': 'File not found'}), 404
         mime_map = {
+            # Video
             '.mp4': 'video/mp4', '.mkv': 'video/x-matroska', '.avi': 'video/x-msvideo',
             '.webm': 'video/webm', '.mov': 'video/quicktime', '.wmv': 'video/x-ms-wmv',
             '.flv': 'video/x-flv', '.m4v': 'video/mp4',
+            # Audio
+            '.mp3': 'audio/mpeg', '.flac': 'audio/flac', '.m4a': 'audio/mp4',
+            '.m4b': 'audio/mp4', '.aac': 'audio/aac', '.ogg': 'audio/ogg',
+            '.opus': 'audio/opus', '.wav': 'audio/wav', '.wma': 'audio/x-ms-wma',
+            # Ebooks
+            '.epub': 'application/epub+zip', '.pdf': 'application/pdf',
+            '.mobi': 'application/x-mobipocket-ebook', '.cbz': 'application/zip',
+            '.cbr': 'application/x-rar-compressed',
         }
         mime = mime_map.get(file_path.suffix.lower(), 'application/octet-stream')
         return send_file(str(file_path), mimetype=mime, conditional=True)
@@ -593,7 +613,8 @@ def create_app() -> Flask:
         if not filename or '/' in filename or '\\' in filename or '..' in filename:
             return jsonify({'error': 'Invalid filename'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         rdir = Path(paths_cfg.get(pipe_key, {}).get('review', ''))
         file_path = rdir / filename
         if not file_path.exists():
@@ -623,7 +644,8 @@ def create_app() -> Flask:
             return jsonify({'error': 'Invalid filename'}), 400
 
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         rdir = Path(paths_cfg.get(pipe_key, {}).get('review', ''))
         src = rdir / filename
         if not src.exists():
@@ -703,6 +725,48 @@ def create_app() -> Flask:
 
                 dest_root.mkdir(parents=True, exist_ok=True)
                 target = dest_root / final_name
+            elif pipeline == 'music':
+                # Music approval: move to the appropriate music output directory
+                title = (match_data or {}).get('title') or best_match or src.stem
+                safe_title = brain.sanitize_for_filesystem(title)
+                output = paths_cfg.get('output', {})
+                # Determine if audiobook or music based on staged location
+                staged_cfg = paths_cfg.get('music_pipeline', {}).get('staged', {})
+                audiobook_staged = staged_cfg.get('audiobooks', '')
+                if audiobook_staged and str(rdir).startswith(str(Path(audiobook_staged).parent)):
+                    dest_root = Path(output.get('audiobooks', 'Audiobooks'))
+                else:
+                    dest_root = Path(output.get('music', 'Music'))
+                artist = (match_data or {}).get('artist', '')
+                if artist:
+                    safe_artist = brain.sanitize_for_filesystem(artist)
+                    dest_root = dest_root / safe_artist
+                dest_root.mkdir(parents=True, exist_ok=True)
+                target = dest_root / f"{safe_title}{src.suffix}"
+            elif pipeline == 'books':
+                # Books approval: move to the appropriate books output directory
+                title = (match_data or {}).get('title') or best_match or src.stem
+                safe_title = brain.sanitize_for_filesystem(title)
+                output = paths_cfg.get('output', {})
+                # Determine sub-type based on staged location or file extension
+                staged_cfg = paths_cfg.get('books_pipeline', {}).get('staged', {})
+                comics_staged = staged_cfg.get('comics', '')
+                manga_staged = staged_cfg.get('manga', '')
+                ext_lower = src.suffix.lower()
+                if comics_staged and str(rdir).startswith(str(Path(comics_staged).parent)):
+                    dest_root = Path(output.get('comics', 'Comics'))
+                elif manga_staged and str(rdir).startswith(str(Path(manga_staged).parent)):
+                    dest_root = Path(output.get('manga', 'Manga'))
+                elif ext_lower in ('.cbz', '.cbr'):
+                    dest_root = Path(output.get('comics', 'Comics'))
+                else:
+                    dest_root = Path(output.get('books', 'Books'))
+                author = (match_data or {}).get('author', '')
+                if author:
+                    safe_author = brain.sanitize_for_filesystem(author)
+                    dest_root = dest_root / safe_author
+                dest_root.mkdir(parents=True, exist_ok=True)
+                target = dest_root / f"{safe_title}{src.suffix}"
             else:
                 # Series approval: file has SxxEyy, use match title to build ShowName/Season XX/ShowName - SxxEyy.ext
                 title = (match_data or {}).get('title') or best_match
@@ -756,6 +820,8 @@ def create_app() -> Flask:
         dup_dirs = {
             'shows': Path(paths_cfg.get('series_pipeline', {}).get('duplicates', '')),
             'movies': Path(paths_cfg.get('movie_pipeline', {}).get('duplicates', '')),
+            'music': Path(paths_cfg.get('music_pipeline', {}).get('duplicates', '')),
+            'books': Path(paths_cfg.get('books_pipeline', {}).get('duplicates', '')),
         }
         files = []
         for pipeline, ddir in dup_dirs.items():
@@ -793,7 +859,8 @@ def create_app() -> Flask:
         if not filename or '/' in filename or '\\' in filename or '..' in filename:
             return jsonify({'error': 'Invalid filename'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         ddir = Path(paths_cfg.get(pipe_key, {}).get('duplicates', ''))
         src = ddir / filename
         if not src.exists():
@@ -829,7 +896,8 @@ def create_app() -> Flask:
         if not filename or '/' in filename or '\\' in filename or '..' in filename:
             return jsonify({'error': 'Invalid filename'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         ddir = Path(paths_cfg.get(pipe_key, {}).get('duplicates', ''))
         src = ddir / filename
         if not src.exists():
@@ -855,7 +923,8 @@ def create_app() -> Flask:
         if not filename or '/' in filename or '\\' in filename or '..' in filename:
             return jsonify({'error': 'Invalid filename'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         ddir = Path(paths_cfg.get(pipe_key, {}).get('duplicates', ''))
         if target == 'existing':
             dup_sidecar = ddir / (filename + '.dup.json')
@@ -891,7 +960,8 @@ def create_app() -> Flask:
         if not filename or '/' in filename or '\\' in filename or '..' in filename:
             return jsonify({'error': 'Invalid'}), 400
         paths_cfg = cfg.get('paths', {})
-        pipe_key = 'series_pipeline' if pipeline == 'shows' else 'movie_pipeline'
+        PIPE_KEYS = {'shows': 'series_pipeline', 'movies': 'movie_pipeline', 'music': 'music_pipeline', 'books': 'books_pipeline'}
+        pipe_key = PIPE_KEYS.get(pipeline, 'series_pipeline')
         ddir = Path(paths_cfg.get(pipe_key, {}).get('duplicates', ''))
         file_path = ddir / filename
         if not file_path.exists():
@@ -920,6 +990,20 @@ def create_app() -> Flask:
         target = Path(req_path).resolve()
         if not target.is_dir():
             return jsonify({"error": "Not a directory"}), 400
+
+        # Path traversal guard: restrict browsing to configured roots
+        cfg_data = config_mgr.read()
+        allowed_roots = []
+        for root_val in cfg_data.get('paths', {}).get('roots', {}).values():
+            if root_val:
+                try:
+                    allowed_roots.append(str(Path(root_val).resolve()))
+                except Exception:
+                    pass
+        if allowed_roots:
+            target_str = str(target)
+            if not any(target_str == r or target_str.startswith(r + os.sep) for r in allowed_roots):
+                return jsonify({"error": "Access denied: path outside configured roots"}), 403
 
         dirs = []
         try:
@@ -998,13 +1082,13 @@ def create_app() -> Flask:
         # Check critical pipeline dirs
         critical_dirs = []
         for key in ['input_drop', 'system_drop', 'processing', 'failed', 'review', 'duplicates']:
-            for pipe_name, pipe_key in [('series', 'series_pipeline'), ('movies', 'movie_pipeline')]:
+            for pipe_name, pipe_key in [('series', 'series_pipeline'), ('movies', 'movie_pipeline'), ('music', 'music_pipeline'), ('books', 'books_pipeline')]:
                 pipe = paths_cfg.get(pipe_key, {})
                 val = pipe.get(key, '')
                 if val:
                     critical_dirs.append((f"{pipe_name}.{key}", val))
         # Staged dirs
-        for pipe_name, pipe_key in [('series', 'series_pipeline'), ('movies', 'movie_pipeline')]:
+        for pipe_name, pipe_key in [('series', 'series_pipeline'), ('movies', 'movie_pipeline'), ('music', 'music_pipeline'), ('books', 'books_pipeline')]:
             staged = paths_cfg.get(pipe_key, {}).get('staged', {})
             for sk, sv in staged.items():
                 if sv:
@@ -1050,7 +1134,7 @@ def create_app() -> Flask:
 
         # 5. Pipeline dirs exist
         dirs_ok = True
-        for pipe_key in ['series_pipeline', 'movie_pipeline']:
+        for pipe_key in ['series_pipeline', 'movie_pipeline', 'music_pipeline', 'books_pipeline']:
             pipe = cfg_data.get('paths', {}).get(pipe_key, {})
             for key in ['input_drop', 'system_drop', 'processing']:
                 val = pipe.get(key, '')
@@ -1192,6 +1276,58 @@ def create_app() -> Flask:
                     return jsonify({"valid": True, "message": "IGDB credentials are valid"})
                 return jsonify({"valid": False, "error": "No access token received"})
 
+            elif api_name == 'acoustid':
+                # AcoustID: simple lookup test
+                url = f'https://api.acoustid.org/v2/lookup?client={api_key}&duration=300&fingerprint=test'
+                req = urllib.request.Request(url, headers={'User-Agent': 'MyMediaManager/1.0'})
+                resp = urllib.request.urlopen(req, timeout=10)
+                return jsonify({"valid": True, "message": "AcoustID key is valid"})
+
+            elif api_name == 'spotify':
+                # Spotify: Client Credentials OAuth
+                import base64
+                if not api_secret:
+                    return jsonify({"valid": False, "error": "Spotify requires both Client ID and Client Secret"})
+                creds = base64.b64encode(f'{api_key}:{api_secret}'.encode()).decode()
+                token_data = urllib.parse.urlencode({'grant_type': 'client_credentials'}).encode('utf-8')
+                req = urllib.request.Request(
+                    'https://accounts.spotify.com/api/token',
+                    data=token_data,
+                    headers={
+                        'Authorization': f'Basic {creds}',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': 'MyMediaManager/1.0',
+                    },
+                    method='POST'
+                )
+                resp = urllib.request.urlopen(req, timeout=10)
+                import json as json_mod
+                result = json_mod.loads(resp.read().decode())
+                if 'access_token' in result:
+                    return jsonify({"valid": True, "message": "Spotify credentials are valid"})
+                return jsonify({"valid": False, "error": "No access token received"})
+
+            elif api_name == 'lastfm':
+                # Last.fm: simple method call
+                url = f'https://ws.audioscrobbler.com/2.0/?method=chart.gettopartists&api_key={api_key}&format=json&limit=1'
+                req = urllib.request.Request(url, headers={'User-Agent': 'MyMediaManager/1.0'})
+                resp = urllib.request.urlopen(req, timeout=10)
+                return jsonify({"valid": True, "message": "Last.fm key is valid"})
+
+            elif api_name == 'comicvine':
+                # ComicVine: search test
+                url = f'https://comicvine.gamespot.com/api/volumes/?api_key={api_key}&format=json&limit=1&filter=name:test'
+                req = urllib.request.Request(url, headers={'User-Agent': 'MyMediaManager/1.0'})
+                resp = urllib.request.urlopen(req, timeout=10)
+                return jsonify({"valid": True, "message": "ComicVine key is valid"})
+
+            elif api_name == 'googlebooks':
+                # Google Books: search with key
+                url = f'https://www.googleapis.com/books/v1/volumes?q=test&key={api_key}&maxResults=1'
+                req = urllib.request.Request(url, headers={'User-Agent': 'MyMediaManager/1.0'})
+                resp = urllib.request.urlopen(req, timeout=10)
+                return jsonify({"valid": True, "message": "Google Books key is valid"})
+
             else:
                 # Custom API: try test URL if provided
                 if test_url:
@@ -1267,16 +1403,21 @@ def create_app() -> Flask:
             pass
 
         categories = {
-            'tv': {'label': 'TV Shows', 'path': output.get('tv', 'TV Shows'), 'color': '#4fc3f7'},
-            'movies': {'label': 'Movies', 'path': output.get('movies', 'Movies'), 'color': '#ffb74d'},
-            'anime_shows': {'label': 'Anime Shows', 'path': output.get('anime_shows', 'Anime/Shows'), 'color': '#6366f1'},
-            'anime_movies': {'label': 'Anime Movies', 'path': output.get('anime_movies', 'Anime/Movies'), 'color': '#ce93d8'},
-            'cartoons': {'label': 'Cartoons', 'path': output.get('cartoons', 'Cartoons'), 'color': '#81c784'},
-            'reality': {'label': 'Reality TV', 'path': output.get('reality', 'Reality TV'), 'color': '#ff7043'},
-            'talkshow': {'label': 'Talk Shows', 'path': output.get('talkshow', 'Talk Shows'), 'color': '#26c6da'},
-            'docs_series': {'label': 'Doc Series', 'path': output.get('documentaries_series', 'Documentaries/Series'), 'color': '#8d6e63'},
-            'docs_movies': {'label': 'Doc Movies', 'path': output.get('documentaries_movies', 'Documentaries/Movies'), 'color': '#8d6e63'},
-            'standup': {'label': 'Stand-Up', 'path': output.get('standup', 'Stand-Up'), 'color': '#ab47bc'},
+            'tv': {'label': 'TV Shows', 'path': output.get('tv', 'Shows & Movies/TV Shows'), 'color': '#4fc3f7'},
+            'movies': {'label': 'Movies', 'path': output.get('movies', 'Shows & Movies/Movies'), 'color': '#ffb74d'},
+            'anime_shows': {'label': 'Anime Shows', 'path': output.get('anime_shows', 'Shows & Movies/Anime/Shows'), 'color': '#6366f1'},
+            'anime_movies': {'label': 'Anime Movies', 'path': output.get('anime_movies', 'Shows & Movies/Anime/Movies'), 'color': '#ce93d8'},
+            'cartoons': {'label': 'Cartoons', 'path': output.get('cartoons', 'Shows & Movies/Cartoons'), 'color': '#81c784'},
+            'reality': {'label': 'Reality TV', 'path': output.get('reality', 'Shows & Movies/Reality TV'), 'color': '#ff7043'},
+            'talkshow': {'label': 'Talk Shows', 'path': output.get('talkshow', 'Shows & Movies/Talk Shows'), 'color': '#26c6da'},
+            'docs_series': {'label': 'Doc Series', 'path': output.get('documentaries_series', 'Shows & Movies/Documentaries/Series'), 'color': '#8d6e63'},
+            'docs_movies': {'label': 'Doc Movies', 'path': output.get('documentaries_movies', 'Shows & Movies/Documentaries/Movies'), 'color': '#8d6e63'},
+            'standup': {'label': 'Stand-Up', 'path': output.get('standup', 'Shows & Movies/Stand-Up'), 'color': '#ab47bc'},
+            'books': {'label': 'Books', 'path': output.get('books', 'Books & Comics/Books'), 'color': '#a78bfa'},
+            'comics': {'label': 'Comics', 'path': output.get('comics', 'Books & Comics/Comics'), 'color': '#f97316'},
+            'manga': {'label': 'Manga', 'path': output.get('manga', 'Books & Comics/Manga'), 'color': '#fb7185'},
+            'music': {'label': 'Music', 'path': output.get('music', 'Audio & Music/Music'), 'color': '#22d3ee'},
+            'audiobooks': {'label': 'Audiobooks', 'path': output.get('audiobooks', 'Audio & Music/Audiobooks'), 'color': '#fbbf24'},
         }
 
         result = {}
@@ -1612,6 +1753,50 @@ def create_app() -> Flask:
     _cleanup_thread.start()
 
     # Cleanup on exit
+    # ──────────────────────────────────────────────
+    # Noise Learner API Routes
+    # ──────────────────────────────────────────────
+
+    @app.route('/api/noise-learner', methods=['GET'])
+    @login_required
+    def api_noise_overview():
+        return jsonify(noise_mgr.get_overview())
+
+    @app.route('/api/noise-learner/toggle', methods=['POST'])
+    @login_required
+    def api_noise_toggle():
+        enabled = request.json.get('enabled', False)
+        return jsonify(noise_mgr.toggle_apply(enabled))
+
+    @app.route('/api/noise-learner/approve', methods=['POST'])
+    @login_required
+    def api_noise_approve():
+        pattern = request.json.get('pattern', '')
+        category = request.json.get('category', 'video')
+        return jsonify(noise_mgr.approve(pattern, category))
+
+    @app.route('/api/noise-learner/reject', methods=['POST'])
+    @login_required
+    def api_noise_reject():
+        pattern = request.json.get('pattern', '')
+        category = request.json.get('category', 'video')
+        reason = request.json.get('reason', '')
+        return jsonify(noise_mgr.reject(pattern, category, reason))
+
+    @app.route('/api/noise-learner/add', methods=['POST'])
+    @login_required
+    def api_noise_add():
+        pattern = request.json.get('pattern', '')
+        category = request.json.get('category', 'video')
+        return jsonify(noise_mgr.add_manual(pattern, category))
+
+    @app.route('/api/noise-learner/delete', methods=['POST'])
+    @login_required
+    def api_noise_delete():
+        pattern = request.json.get('pattern', '')
+        category = request.json.get('category', 'video')
+        return jsonify(noise_mgr.delete(pattern, category))
+
     def cleanup():
         _cleanup_stop.set()
         pm.shutdown()

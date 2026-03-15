@@ -5,19 +5,42 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Media files
+# Media files (video)
 *.mkv
 *.mp4
 *.avi
 *.mov
+*.wmv
+*.flv
+# Media files (audio)
+*.mp3
+*.flac
+*.m4a
+*.m4b
+*.ogg
+*.opus
+*.wav
+*.wma
+*.aac
+# Media files (books)
+*.epub
+*.mobi
+*.cbz
+*.cbr
+*.pdf
+# Test files
+Test.mp3
 
 # Pipeline working dirs
 .Work/
 Drop_Shows/
 Drop_Movies/
+Drop_Music/
+Drop_Books/
 Trash/
 Review/
 Duplicates/
+Library/
 Library_Test/
 Test/
 Ambiguous/

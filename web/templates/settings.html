@@ -73,6 +73,20 @@
                     <span class="field-hint">Max movie data in pipeline</span>
                 </div>
                 <div class="form-field">
+                    <label class="field-label">Music Quota (GB)
+                        <span class="help-tip">?<span class="tip-text">Maximum total size of music files allowed in the Work/ pipeline at once. Same as series quota but for the music pipeline.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.flow_control.music_quota_gb" min="1">
+                    <span class="field-hint">Max music data in pipeline</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Books Quota (GB)
+                        <span class="help-tip">?<span class="tip-text">Maximum total size of book/comic files allowed in the Work/ pipeline at once. Same as series quota but for the books pipeline.</span></span>
+                    </label>
+                    <input type="number" class="field-input" x-model.number="cfg.flow_control.books_quota_gb" min="1">
+                    <span class="field-hint">Max books data in pipeline</span>
+                </div>
+                <div class="form-field">
                     <label class="field-label">Min SSD Free (GB)
                         <span class="help-tip">?<span class="tip-text">Emergency brake. If free space on the data drive drops below this, ALL processing stops to prevent disk-full crashes.</span></span>
                     </label>
@@ -361,6 +375,8 @@
                     <div class="folder-structure">
                         <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Shows/ <span class="folder-desc">- drop new shows here</span></div>
                         <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Movies/ <span class="folder-desc">- drop new movies here</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Music/ <span class="folder-desc">- drop music &amp; audiobooks here</span></div>
+                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Books/ <span class="folder-desc">- drop books, comics &amp; manga here</span></div>
                         <div class="folder-item"><span class="folder-icon">&#128193;</span> Trash/ <span class="folder-desc">- junk files removed by pipeline</span></div>
                         <div class="folder-item"><span class="folder-icon">&#128193;</span> Review/ <span class="folder-desc">- low-confidence files for manual review</span></div>
                         <div class="folder-item"><span class="folder-icon">&#128193;</span> Duplicates/ <span class="folder-desc">- duplicate files detected</span></div>
@@ -380,16 +396,24 @@
                     </div>
                     <span class="field-hint">Organized media for Jellyfin/Plex — must be same physical drive as Data Root</span>
                     <div class="folder-structure">
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> TV Shows/ <span class="folder-desc">- TV series</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Movies/ <span class="folder-desc">- movies</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Anime/Shows/ <span class="folder-desc">- anime series</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Anime/Movies/ <span class="folder-desc">- anime films</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Cartoons/ <span class="folder-desc">- cartoon shows</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Reality TV/ <span class="folder-desc">- reality shows</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Talk Shows/ <span class="folder-desc">- talk shows</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Documentaries/Series/ <span class="folder-desc">- doc series</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Documentaries/Movies/ <span class="folder-desc">- doc films</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Stand-Up/ <span class="folder-desc">- comedy specials</span></div>
+                        <div class="folder-item" style="font-weight:600;color:#4fc3f7"><span class="folder-icon">&#128193;</span> Shows &amp; Movies/</div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> TV Shows/ <span class="folder-desc">- TV series</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Movies/ <span class="folder-desc">- movies</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Anime/Shows/ <span class="folder-desc">- anime series</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Anime/Movies/ <span class="folder-desc">- anime films</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Cartoons/ <span class="folder-desc">- cartoon shows</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Reality TV/ <span class="folder-desc">- reality shows</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Talk Shows/ <span class="folder-desc">- talk shows</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Documentaries/Series/ <span class="folder-desc">- doc series</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Documentaries/Movies/ <span class="folder-desc">- doc films</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Stand-Up/ <span class="folder-desc">- comedy specials</span></div>
+                        <div class="folder-item" style="font-weight:600;color:#22d3ee;margin-top:0.3rem"><span class="folder-icon">&#128193;</span> Audio &amp; Music/</div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Music/ <span class="folder-desc">- music tracks</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Audiobooks/ <span class="folder-desc">- audiobook chapters</span></div>
+                        <div class="folder-item" style="font-weight:600;color:#a78bfa;margin-top:0.3rem"><span class="folder-icon">&#128193;</span> Books &amp; Comics/</div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Books/ <span class="folder-desc">- fiction, non-fiction, technical</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Comics/ <span class="folder-desc">- comic issues by publisher</span></div>
+                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Manga/ <span class="folder-desc">- manga volumes by series</span></div>
                     </div>
                 </div>
             </div>
@@ -443,6 +467,26 @@
                     <input type="text" class="field-input" x-model="cfg.paths.output.standup">
                 </div>
                 <div class="form-field">
+                    <label class="field-label">Music</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.music">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Audiobooks</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.audiobooks">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Books</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.books">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Comics</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.comics">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Manga</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.output.manga">
+                </div>
+                <div class="form-field">
                     <label class="field-label">Trash</label>
                     <input type="text" class="field-input" x-model="cfg.paths.trash_root">
                 </div>
@@ -463,6 +507,14 @@
                 <div class="form-field">
                     <label class="field-label">Movies Drop</label>
                     <input type="text" class="field-input" x-model="cfg.paths.movie_pipeline.input_drop">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Music Drop</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.music_pipeline.input_drop">
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Books Drop</label>
+                    <input type="text" class="field-input" x-model="cfg.paths.books_pipeline.input_drop">
                 </div>
             </div>
         </div>
@@ -568,14 +620,27 @@
                         <label class="field-label">Service</label>
                         <select class="field-input" x-model="newKeyPreset" @change="onPresetChange()">
                             <option value="">Select...</option>
-                            <option value="tvdb" :disabled="'tvdb' in cfg.api_keys">TVDB</option>
-                            <option value="tmdb" :disabled="'tmdb' in cfg.api_keys">TMDB</option>
-                            <option value="mal" :disabled="'mal' in cfg.api_keys">MAL</option>
-                            <option value="trakt" :disabled="'trakt' in cfg.api_keys">Trakt</option>
-                            <option value="omdb" :disabled="'omdb' in cfg.api_keys">OMDb</option>
-                            <option value="fanart" :disabled="'fanart' in cfg.api_keys">Fanart.tv</option>
-                            <option value="igdb" :disabled="'igdb' in cfg.api_keys">IGDB (Twitch)</option>
-                            <option value="youtube" :disabled="'youtube' in cfg.api_keys">YouTube</option>
+                            <optgroup label="Video">
+                                <option value="tvdb" :disabled="'tvdb' in cfg.api_keys">TVDB</option>
+                                <option value="tmdb" :disabled="'tmdb' in cfg.api_keys">TMDB</option>
+                                <option value="mal" :disabled="'mal' in cfg.api_keys">MAL</option>
+                                <option value="trakt" :disabled="'trakt' in cfg.api_keys">Trakt</option>
+                                <option value="omdb" :disabled="'omdb' in cfg.api_keys">OMDb</option>
+                            </optgroup>
+                            <optgroup label="Music">
+                                <option value="acoustid" :disabled="'acoustid' in cfg.api_keys">AcoustID</option>
+                                <option value="spotify" :disabled="'spotify' in cfg.api_keys">Spotify</option>
+                                <option value="lastfm" :disabled="'lastfm' in cfg.api_keys">Last.fm</option>
+                            </optgroup>
+                            <optgroup label="Books & Comics">
+                                <option value="comicvine" :disabled="'comicvine' in cfg.api_keys">ComicVine</option>
+                                <option value="googlebooks" :disabled="'googlebooks' in cfg.api_keys">Google Books</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="fanart" :disabled="'fanart' in cfg.api_keys">Fanart.tv</option>
+                                <option value="igdb" :disabled="'igdb' in cfg.api_keys">IGDB (Twitch)</option>
+                                <option value="youtube" :disabled="'youtube' in cfg.api_keys">YouTube</option>
+                            </optgroup>
                             <option value="custom">Custom...</option>
                         </select>
                     </div>
@@ -584,13 +649,14 @@
                         <input type="text" class="field-input" x-model="newKeyCustomName" placeholder="e.g. myapi">
                     </div>
                     <div class="form-field" style="flex:2;min-width:200px">
-                        <label class="field-label" x-text="newKeyPreset === 'igdb' ? 'Client ID' : 'Key'"></label>
+                        <label class="field-label" x-text="(newKeyPreset === 'igdb' || newKeyPreset === 'spotify') ? 'Client ID' : 'Key'"></label>
                         <input type="text" class="field-input" x-model="newKeyValue"
-                               :placeholder="newKeyPreset === 'igdb' ? 'Twitch Client ID' : 'Paste API key...'">
+                               :placeholder="newKeyPreset === 'igdb' ? 'Twitch Client ID' : newKeyPreset === 'spotify' ? 'Spotify Client ID' : 'Paste API key...'">
                     </div>
-                    <div class="form-field" x-show="newKeyPreset === 'igdb'" style="flex:2;min-width:200px" x-cloak>
+                    <div class="form-field" x-show="newKeyPreset === 'igdb' || newKeyPreset === 'spotify'" style="flex:2;min-width:200px" x-cloak>
                         <label class="field-label">Client Secret</label>
-                        <input type="text" class="field-input" x-model="newKeySecret" placeholder="Twitch Client Secret">
+                        <input type="text" class="field-input" x-model="newKeySecret"
+                               :placeholder="newKeyPreset === 'igdb' ? 'Twitch Client Secret' : 'Spotify Client Secret'">
                     </div>
                     <div class="form-field" x-show="newKeyPreset === 'custom'" style="flex:2;min-width:200px" x-cloak>
                         <label class="field-label">Test URL <span style="opacity:0.5;font-weight:400">(optional)</span></label>
@@ -631,43 +697,63 @@
                     </svg>
                     Free APIs (No Key Required)
                 </h4>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:0.6rem">
-                    <!-- Active: Jikan -->
-                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
-                        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:0.5rem">
+                    <!-- Video APIs -->
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.7rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
                         <div>
-                            <div style="font-size:0.85rem;font-weight:600">Jikan</div>
-                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">MAL data (unofficial)</div>
+                            <div style="font-size:0.82rem;font-weight:600">Jikan <span style="font-size:0.65rem;opacity:0.5;font-weight:400">VIDEO</span></div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px">MAL data (unofficial)</div>
                         </div>
                     </div>
-                    <!-- Active: AniList -->
-                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
-                        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.7rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
                         <div>
-                            <div style="font-size:0.85rem;font-weight:600">AniList</div>
-                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">Anime data (GraphQL API)</div>
+                            <div style="font-size:0.82rem;font-weight:600">AniList <span style="font-size:0.65rem;opacity:0.5;font-weight:400">VIDEO / MANGA</span></div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px">Anime & manga (GraphQL)</div>
                         </div>
                     </div>
-                    <!-- Available: TVmaze -->
-                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid rgba(100,116,139,0.3);background:rgba(100,116,139,0.04)">
-                        <span style="width:8px;height:8px;border-radius:50%;background:rgba(100,116,139,0.4);flex-shrink:0;margin-top:4px"></span>
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.7rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
                         <div>
-                            <div style="font-size:0.85rem;font-weight:600;opacity:0.7">TVmaze</div>
-                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">TV show data (REST API)</div>
+                            <div style="font-size:0.82rem;font-weight:600">TVmaze <span style="font-size:0.65rem;opacity:0.5;font-weight:400">VIDEO</span></div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px">TV show data (REST API)</div>
                         </div>
                     </div>
-                    <!-- Available: Kitsu -->
-                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:6px;border-left:3px solid rgba(100,116,139,0.3);background:rgba(100,116,139,0.04)">
-                        <span style="width:8px;height:8px;border-radius:50%;background:rgba(100,116,139,0.4);flex-shrink:0;margin-top:4px"></span>
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.7rem;border-radius:6px;border-left:3px solid rgba(100,116,139,0.3);background:rgba(100,116,139,0.04)">
+                        <span style="width:7px;height:7px;border-radius:50%;background:rgba(100,116,139,0.4);flex-shrink:0;margin-top:4px"></span>
                         <div>
-                            <div style="font-size:0.85rem;font-weight:600;opacity:0.7">Kitsu</div>
-                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px">Anime & manga (JSON:API)</div>
+                            <div style="font-size:0.82rem;font-weight:600;opacity:0.7">Kitsu <span style="font-size:0.65rem;opacity:0.5;font-weight:400">VIDEO</span></div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px">Anime & manga (JSON:API)</div>
+                        </div>
+                    </div>
+                    <!-- Music APIs -->
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.7rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600">MusicBrainz <span style="font-size:0.65rem;opacity:0.5;font-weight:400">MUSIC</span></div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px">Artist, album & track lookup</div>
+                        </div>
+                    </div>
+                    <!-- Books APIs -->
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.7rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600">OpenLibrary <span style="font-size:0.65rem;opacity:0.5;font-weight:400">BOOKS</span></div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px">Book metadata & ISBN lookup</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.55rem 0.7rem;border-radius:6px;border-left:3px solid #22c55e;background:rgba(34,197,94,0.04)">
+                        <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:4px"></span>
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600">Google Books <span style="font-size:0.65rem;opacity:0.5;font-weight:400">BOOKS</span></div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px">Works without key (key = higher limits)</div>
                         </div>
                     </div>
                 </div>
-                <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.7rem;color:var(--text-muted)">
-                    <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:3px;vertical-align:1px"></span>Used by pipeline</span>
-                    <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(100,116,139,0.4);margin-right:3px;vertical-align:1px"></span>Available for integration</span>
+                <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.68rem;color:var(--text-muted)">
+                    <span><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e;margin-right:3px;vertical-align:1px"></span>Active in pipeline</span>
+                    <span><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(100,116,139,0.4);margin-right:3px;vertical-align:1px"></span>Available</span>
                 </div>
             </div>
         </div>
@@ -1226,7 +1312,7 @@ function settingsApp() {
         },
 
         // API Keys
-        testableApis: ['tvdb', 'tmdb', 'mal', 'trakt', 'omdb', 'fanart', 'igdb', 'youtube'],
+        testableApis: ['tvdb', 'tmdb', 'mal', 'trakt', 'omdb', 'fanart', 'igdb', 'youtube', 'acoustid', 'spotify', 'lastfm', 'comicvine', 'googlebooks'],
         defaultApiNames: ['tvdb', 'tmdb', 'mal'],
         revealedKeys: {},
         newKeyPreset: '',
@@ -1322,6 +1408,12 @@ function settingsApp() {
                 mal: 'MyAnimeList',
                 anilist: 'AniList',
                 trakt: 'Trakt',
+                acoustid: 'AcoustID',
+                spotify: 'Spotify',
+                spotify_secret: 'Spotify Secret',
+                lastfm: 'Last.fm',
+                comicvine: 'ComicVine',
+                googlebooks: 'Google Books',
             };
             return labels[name] || name;
         },
@@ -1558,7 +1650,7 @@ function settingsApp() {
         canAddKey() {
             const name = this.getNewKeyName();
             if (!name || !this.newKeyValue.trim() || (name in this.cfg.api_keys)) return false;
-            if (name === 'igdb' && !this.newKeySecret.trim()) return false;
+            if ((name === 'igdb' || name === 'spotify') && !this.newKeySecret.trim()) return false;
             return true;
         },
 
@@ -1625,7 +1717,7 @@ function settingsApp() {
 
             // Build request body
             const body = { name, key };
-            if (name === 'igdb' && secret) body.secret = secret;
+            if ((name === 'igdb' || name === 'spotify') && secret) body.secret = secret;
             if (this.newKeyPreset === 'custom' && testUrl) body.test_url = testUrl;
 
             // Auto-test for testable APIs or custom with test URL
@@ -1658,6 +1750,10 @@ function settingsApp() {
 
             // For IGDB, store as "client_id:client_secret"
             this.cfg.api_keys[name] = (name === 'igdb' && secret) ? key + ':' + secret : key;
+            // For Spotify, also store the secret separately
+            if (name === 'spotify' && secret) {
+                this.cfg.api_keys['spotify_secret'] = secret;
+            }
             // Save category tags for custom keys
             if (this.newKeyPreset === 'custom' && this.newKeyCategories.length > 0) {
                 if (!this.cfg.api_key_tags) this.cfg.api_key_tags = {};

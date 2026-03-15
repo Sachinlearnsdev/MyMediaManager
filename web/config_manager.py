@@ -19,6 +19,12 @@ ENV_KEY_MAP = {
     'MMM_FANART_KEY': 'fanart',
     'MMM_IGDB_KEY': 'igdb',
     'MMM_YOUTUBE_KEY': 'youtube',
+    'MMM_ACOUSTID_KEY': 'acoustid',
+    'MMM_SPOTIFY_KEY': 'spotify',
+    'MMM_SPOTIFY_SECRET': 'spotify_secret',
+    'MMM_LASTFM_KEY': 'lastfm',
+    'MMM_COMICVINE_KEY': 'comicvine',
+    'MMM_GOOGLEBOOKS_KEY': 'googlebooks',
 }
 
 # Reverse: api_keys name → .env key name
@@ -168,3 +174,10 @@ class ConfigManager:
                 raise ValueError(f"Missing required config section: {key}")
         if 'roots' not in config.get('paths', {}):
             raise ValueError("Missing paths.roots in config")
+
+        paths = config.get('paths', {})
+        # Validate pipeline sections have required sub-keys when present
+        for pipeline_key in ('series_pipeline', 'movie_pipeline', 'music_pipeline', 'books_pipeline'):
+            pipeline = paths.get(pipeline_key)
+            if pipeline is not None and not isinstance(pipeline, dict):
+                raise ValueError(f"paths.{pipeline_key} must be a dict")

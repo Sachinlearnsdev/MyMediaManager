@@ -228,8 +228,14 @@ def process_pipeline(mode):
     elif mode == 'movies':
         pipeline = config['paths']['movie_pipeline']
         quota_limit = config['flow_control']['movies_quota_gb']
+    elif mode == 'music':
+        pipeline = config['paths']['music_pipeline']
+        quota_limit = config['flow_control'].get('music_quota_gb', 100)
+    elif mode == 'books':
+        pipeline = config['paths']['books_pipeline']
+        quota_limit = config['flow_control'].get('books_quota_gb', 50)
     else:
-        logger.error("Invalid mode. Use 'series' or 'movies'.")
+        logger.error("Invalid mode. Use 'series', 'movies', 'music', or 'books'.")
         sys.exit(1)
 
     INPUT_DROP = Path(pipeline['input_drop'])
@@ -360,7 +366,7 @@ def process_pipeline(mode):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", required=True, choices=['series', 'movies'])
+    parser.add_argument("--mode", required=True, choices=['series', 'movies', 'music', 'books'])
     args = parser.parse_args()
     logger, _ = common.setup_logger("automouse", args.mode)
     process_pipeline(args.mode)

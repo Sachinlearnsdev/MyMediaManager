@@ -14,7 +14,7 @@ _PROJECT_ROOT = os.path.dirname(_BIN_DIR)
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from bin.constants import VIDEO_EXTS, ARCHIVE_EXTS, JUNK_MAP
+from bin.constants import VIDEO_EXTS, AUDIO_EXTS, BOOK_EXTS, COMIC_EXTS, ARCHIVE_EXTS, JUNK_MAP
 import common
 
 CHECK_INTERVAL = 2
@@ -68,8 +68,19 @@ def main(mode: str) -> None:
         pipeline = config['paths']['series_pipeline']
     elif mode == 'movies':
         pipeline = config['paths']['movie_pipeline']
+    elif mode == 'music':
+        pipeline = config['paths']['music_pipeline']
+    elif mode == 'books':
+        pipeline = config['paths']['books_pipeline']
     else:
         sys.exit(1)
+
+    if mode == 'music':
+        MEDIA_EXTS = AUDIO_EXTS
+    elif mode == 'books':
+        MEDIA_EXTS = BOOK_EXTS | COMIC_EXTS
+    else:
+        MEDIA_EXTS = VIDEO_EXTS
 
     WATCH_DIR = Path(pipeline['system_drop'])
     DEST_DIR = Path(pipeline['processing'])
@@ -95,10 +106,10 @@ def main(mode: str) -> None:
                 ext = item.suffix.lower()
 
                 if ext in ARCHIVE_EXTS: continue
-                if ext in VIDEO_EXTS:
+                if ext in MEDIA_EXTS:
                     if not video_stable(item): continue
 
-                if ext in VIDEO_EXTS:
+                if ext in MEDIA_EXTS:
                     move(item, DEST_DIR, mode)
                     ctx = item.with_suffix(item.suffix + ".ctx.json")
                     if ctx.exists(): move(ctx, DEST_DIR, mode)
@@ -114,7 +125,7 @@ def main(mode: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", required=True, choices=['series', 'movies'])
+    parser.add_argument("--mode", required=True, choices=['series', 'movies', 'music', 'books'])
     args = parser.parse_args()
     log_obj, _ = common.setup_logger("autorouter", args.mode)
     main(args.mode)

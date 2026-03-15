@@ -75,14 +75,14 @@
                 <div class="flow-num">1</div>
                 <div>
                     <strong>Drop files</strong>
-                    <p>Put TV shows in <code>Drop_Shows/</code> and movies in <code>Drop_Movies/</code>. Sonarr/Radarr can be configured to drop here automatically.</p>
+                    <p>Put TV shows in <code>Drop_Shows/</code>, movies in <code>Drop_Movies/</code>, music in <code>Drop_Music/</code>, and books in <code>Drop_Books/</code>. Sonarr/Radarr can be configured to drop here automatically.</p>
                 </div>
             </div>
             <div class="flow-step">
                 <div class="flow-num">2</div>
                 <div>
                     <strong>Pipeline processes</strong>
-                    <p>Files are automatically stabilized, extracted, routed, cleaned, classified, and matched against TVDB/TMDB/MAL APIs.</p>
+                    <p>Files are automatically stabilized, extracted, routed, cleaned, classified, and matched against TVDB/TMDB/MAL/MusicBrainz/OpenLibrary APIs.</p>
                 </div>
             </div>
             <div class="flow-step">
@@ -110,6 +110,14 @@
                         <td><code>Drop_Movies/</code></td>
                         <td>Movies, Anime Movies, Stand-Up Specials, Documentary Films</td>
                     </tr>
+                    <tr>
+                        <td><code>Drop_Music/</code></td>
+                        <td>Music files (.mp3, .flac, .m4a, .m4b, etc.)</td>
+                    </tr>
+                    <tr>
+                        <td><code>Drop_Books/</code></td>
+                        <td>Books &amp; comics (.epub, .mobi, .pdf, .cbz, .cbr, etc.)</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -135,11 +143,15 @@ sudo usermod -a -G media radarr</pre>
                     <tr><td>TVDB</td><td>TV, Cartoons, Reality, Talk Shows, Docs, Classifier</td><td><a href="https://thetvdb.com/api-information" target="_blank">thetvdb.com</a></td></tr>
                     <tr><td>TMDB</td><td>Movies (+ anime/standup/doc detection)</td><td><a href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org</a></td></tr>
                     <tr><td>MAL</td><td>Anime, Classifier anime detection</td><td><a href="https://myanimelist.net/apiconfig" target="_blank">myanimelist.net</a></td></tr>
+                    <tr><td>MusicBrainz</td><td>Music metadata (free, no key needed)</td><td><a href="https://musicbrainz.org/" target="_blank">musicbrainz.org</a></td></tr>
+                    <tr><td>OpenLibrary</td><td>Book metadata (free, no key needed)</td><td><a href="https://openlibrary.org/" target="_blank">openlibrary.org</a></td></tr>
+                    <tr><td>AcoustID</td><td>Audio fingerprinting (optional, needs key)</td><td><a href="https://acoustid.org/my-applications" target="_blank">acoustid.org</a></td></tr>
+                    <tr><td>ComicVine</td><td>Comic metadata (optional, needs key)</td><td><a href="https://comicvine.gamespot.com/api/" target="_blank">comicvine.gamespot.com</a></td></tr>
                 </tbody>
             </table>
         </div>
         <p style="margin-top:0.75rem;color:var(--text-muted);font-size:0.85rem">
-            Free APIs (Jikan, AniList) work without keys. Optional keys: Trakt, OMDb, Fanart, IGDB.
+            Free APIs (Jikan, AniList, MusicBrainz, OpenLibrary) work without keys. Optional keys: Trakt, OMDb, Fanart, IGDB, AcoustID, ComicVine.
         </p>
     </div>
 </div>
@@ -203,6 +215,7 @@ function guideApp() {
                 this.allDone = data.all_done;
             } catch (e) {
                 console.error('Failed to load setup status:', e);
+                window.toast.error('Failed to load setup status');
             }
         }
     };

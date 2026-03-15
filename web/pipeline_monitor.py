@@ -36,14 +36,37 @@ MOVIE_STAGES = [
     {"id": "movies_failed",     "config_key": ("paths", "movie_pipeline", "failed"),            "label": "Failed (Movies)"},
 ]
 
+MUSIC_STAGES = [
+    {"id": "drop_music",        "config_key": ("paths", "music_pipeline", "input_drop"),             "label": "Drop Music"},
+    {"id": "music_system_drop", "config_key": ("paths", "music_pipeline", "system_drop"),            "label": "Intake Queue"},
+    {"id": "music_processing",  "config_key": ("paths", "music_pipeline", "processing"),             "label": "Processing Queue"},
+    {"id": "staged_music",      "config_key": ("paths", "music_pipeline", "staged", "music"),        "label": "Music Queue"},
+    {"id": "staged_audiobooks", "config_key": ("paths", "music_pipeline", "staged", "audiobooks"),   "label": "Audiobook Queue"},
+    {"id": "music_failed",      "config_key": ("paths", "music_pipeline", "failed"),                 "label": "Failed (Music)"},
+]
+
+BOOKS_STAGES = [
+    {"id": "drop_books",        "config_key": ("paths", "books_pipeline", "input_drop"),            "label": "Drop Books"},
+    {"id": "books_system_drop", "config_key": ("paths", "books_pipeline", "system_drop"),           "label": "Intake Queue"},
+    {"id": "books_processing",  "config_key": ("paths", "books_pipeline", "processing"),            "label": "Processing Queue"},
+    {"id": "staged_books",      "config_key": ("paths", "books_pipeline", "staged", "books"),       "label": "Books Queue"},
+    {"id": "staged_comics",     "config_key": ("paths", "books_pipeline", "staged", "comics"),      "label": "Comics Queue"},
+    {"id": "staged_manga",      "config_key": ("paths", "books_pipeline", "staged", "manga"),       "label": "Manga Queue"},
+    {"id": "books_failed",      "config_key": ("paths", "books_pipeline", "failed"),                "label": "Failed (Books)"},
+]
+
 REVIEW_STAGES = [
     {"id": "review_shows",   "config_key": ("paths", "series_pipeline", "review"),        "label": "Review Shows"},
     {"id": "review_movies",  "config_key": ("paths", "movie_pipeline", "review"),         "label": "Review Movies"},
+    {"id": "review_music",   "config_key": ("paths", "music_pipeline", "review"),         "label": "Review Music"},
+    {"id": "review_books",   "config_key": ("paths", "books_pipeline", "review"),         "label": "Review Books"},
 ]
 
 DUPLICATE_STAGES = [
     {"id": "dup_shows",   "config_key": ("paths", "series_pipeline", "duplicates"),  "label": "Duplicate Shows"},
     {"id": "dup_movies",  "config_key": ("paths", "movie_pipeline", "duplicates"),   "label": "Duplicate Movies"},
+    {"id": "dup_music",   "config_key": ("paths", "music_pipeline", "duplicates"),   "label": "Duplicate Music"},
+    {"id": "dup_books",   "config_key": ("paths", "books_pipeline", "duplicates"),   "label": "Duplicate Books"},
 ]
 
 LIBRARY_STAGES = [
@@ -57,6 +80,11 @@ LIBRARY_STAGES = [
     {"id": "library_docs_series",   "output_key": "documentaries_series"},
     {"id": "library_docs_movies",   "output_key": "documentaries_movies"},
     {"id": "library_standup",       "output_key": "standup"},
+    {"id": "library_music",        "output_key": "music"},
+    {"id": "library_audiobooks",   "output_key": "audiobooks"},
+    {"id": "library_books",        "output_key": "books"},
+    {"id": "library_comics",       "output_key": "comics"},
+    {"id": "library_manga",        "output_key": "manga"},
 ]
 
 
@@ -179,7 +207,7 @@ class PipelineMonitor:
 
     def get_snapshot(self) -> dict:
         """Get current pipeline state."""
-        data = {"series": {}, "movies": {}, "review": {}, "duplicates": {}, "disk": {}}
+        data = {"series": {}, "movies": {}, "music": {}, "books": {}, "review": {}, "duplicates": {}, "disk": {}}
 
         for stage in SERIES_STAGES:
             path_str = _resolve_config_key(self.config, stage['config_key'])
@@ -193,6 +221,22 @@ class PipelineMonitor:
             path_str = _resolve_config_key(self.config, stage['config_key'])
             path = Path(path_str) if path_str else None
             data["movies"][stage['id']] = {
+                "label": stage['label'],
+                **(_scan_folder(path) if path else {"count": 0, "files": []}),
+            }
+
+        for stage in MUSIC_STAGES:
+            path_str = _resolve_config_key(self.config, stage['config_key'])
+            path = Path(path_str) if path_str else None
+            data["music"][stage['id']] = {
+                "label": stage['label'],
+                **(_scan_folder(path) if path else {"count": 0, "files": []}),
+            }
+
+        for stage in BOOKS_STAGES:
+            path_str = _resolve_config_key(self.config, stage['config_key'])
+            path = Path(path_str) if path_str else None
+            data["books"][stage['id']] = {
                 "label": stage['label'],
                 **(_scan_folder(path) if path else {"count": 0, "files": []}),
             }

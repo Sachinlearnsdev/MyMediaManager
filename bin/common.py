@@ -10,7 +10,7 @@ import sys
 import os
 import glob
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone as datetime_tz
 
 # Derive BASE_DIR from this file's location (no hardcoded path)
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +28,8 @@ _ENV_KEY_MAP = {
     'MMM_FANART_KEY': 'fanart',
     'MMM_IGDB_KEY': 'igdb',
     'MMM_YOUTUBE_KEY': 'youtube',
+    'MMM_COMICVINE_KEY': 'comicvine',
+    'MMM_GOOGLEBOOKS_KEY': 'googlebooks',
 }
 
 
@@ -70,7 +72,7 @@ def hydrate_paths(cfg):
                     paths['output'][key] = str(library_root / val)
 
         # 3. Hydrate Pipelines (data root -- file I/O)
-        for pipeline in ['series_pipeline', 'movie_pipeline']:
+        for pipeline in ['series_pipeline', 'movie_pipeline', 'music_pipeline', 'books_pipeline']:
             if pipeline in paths:
                 section = paths[pipeline]
                 for key, val in section.items():
@@ -208,3 +210,70 @@ def setup_logger(service_name, mode=None):
     logger.info(f"Log file: {log_file}")
 
     return logger, cfg
+
+
+# ============================================================
+# SIDECAR WRITERS (shared across all processors)
+# ============================================================
+
+def write_reason_sidecar(dest_path, source_name: str, confidence: int, threshold: int,
+                         candidate: str, best_match, detail: str = None,
+                         reason: str = "low_confidence", extra: dict = None):
+    """Write a .reason.json sidecar next to a file moved to Review.
+
+    Args:
+        dest_path: Path where the file was moved (Review dir).
+        source_name: Processor identifier (e.g. "seriesprocessor_tv").
+        confidence: Match confidence score.
+        threshold: Minimum confidence threshold.
+        candidate: Parsed candidate string from filename.
+        best_match: Best API match title (or None).
+        detail: Optional detail string (auto-generated if omitted).
+        reason: Reason code (default "low_confidence", also "no_match").
+        extra: Optional dict merged into the sidecar (e.g. match_data).
+    """
+    try:
+        data = {
+            "source": source_name,
+            "reason": reason,
+            "confidence": confidence,
+            "threshold": threshold,
+            "candidate": candidate,
+            "best_match": best_match,
+            "detail": detail or f"Best confidence {confidence}% below threshold {threshold}%",
+            "timestamp": datetime.now(datetime_tz.utc).isoformat(),
+        }
+        if extra:
+            data.update(extra)
+        dest_path = Path(dest_path)
+        reason_path = dest_path.with_name(dest_path.name + ".reason.json")
+        reason_path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+    except Exception:
+        pass
+
+
+def write_dup_sidecar(dest_path, source_name: str, final_name: str, existing_path):
+    """Write a .dup.json sidecar next to a file moved to Duplicates.
+
+    Args:
+        dest_path: Path where the duplicate file was moved.
+        source_name: Processor identifier (e.g. "movieprocessor").
+        final_name: The canonical filename that already exists in the library.
+        existing_path: Path to the existing file in the library.
+    """
+    try:
+        dest_path = Path(dest_path)
+        existing_path = Path(existing_path)
+        dup_path = dest_path.with_name(dest_path.name + ".dup.json")
+        existing_size = existing_path.stat().st_size if existing_path.exists() else 0
+        new_size = dest_path.stat().st_size if dest_path.exists() else 0
+        dup_path.write_text(json.dumps({
+            "source": source_name,
+            "final_name": final_name,
+            "existing_path": str(existing_path),
+            "existing_size_mb": round(existing_size / (1024 * 1024), 1),
+            "new_size_mb": round(new_size / (1024 * 1024), 1),
+            "timestamp": datetime.now(datetime_tz.utc).isoformat(),
+        }, indent=2), encoding='utf-8')
+    except Exception:
+        pass

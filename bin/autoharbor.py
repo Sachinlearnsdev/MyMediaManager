@@ -26,7 +26,7 @@ _PROJECT_ROOT = os.path.dirname(_BIN_DIR)
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from bin.constants import VIDEO_EXTS, ARCHIVE_EXTS, EXTRACT_TIMEOUT, SCAN_INTERVAL
+from bin.constants import VIDEO_EXTS, AUDIO_EXTS, BOOK_EXTS, COMIC_EXTS, ARCHIVE_EXTS, EXTRACT_TIMEOUT, SCAN_INTERVAL
 import common
 
 HAS_UNRAR = shutil.which("unrar") is not None
@@ -40,6 +40,69 @@ def log(msg, mode):
 
 def is_video(p: Path):
     return p.suffix.lower() in VIDEO_EXTS
+
+def is_audio(p: Path):
+    return p.suffix.lower() in AUDIO_EXTS
+
+def is_book(p: Path):
+    return p.suffix.lower() in BOOK_EXTS or p.suffix.lower() in COMIC_EXTS
+
+def is_media(p: Path):
+    return is_video(p) or is_audio(p) or is_book(p)
+
+
+# ================= CBR→CBZ CONVERSION =================
+
+def convert_cbr_to_cbz(cbr_path: Path, mode: str) -> Path | None:
+    """Convert a .cbr (RAR) file to .cbz (ZIP) for Kavita/Komga compatibility.
+    Returns the new .cbz path on success, None on failure."""
+    import zipfile
+    import tempfile
+
+    cbz_path = cbr_path.with_suffix('.cbz')
+    if cbz_path.exists():
+        log(f"CBZ already exists, skipping conversion: {cbz_path.name}", mode)
+        return cbz_path
+
+    # Extract to temp dir, then re-archive as ZIP
+    with tempfile.TemporaryDirectory(prefix="mmm_cbr_") as tmp_dir:
+        tmp = Path(tmp_dir)
+
+        # Extract CBR using unrar or 7z
+        success = False
+        if HAS_UNRAR:
+            success = _extract_unrar(cbr_path, tmp, mode)
+        elif HAS_7Z:
+            success = _extract_7z(cbr_path, tmp, mode)
+
+        if not success:
+            log(f"CBR extraction failed, keeping original: {cbr_path.name}", mode)
+            return None
+
+        # Collect extracted files (images + ComicInfo.xml)
+        extracted = sorted(tmp.rglob('*'))
+        image_files = [f for f in extracted if f.is_file()]
+
+        if not image_files:
+            log(f"CBR empty after extraction: {cbr_path.name}", mode)
+            return None
+
+        # Create CBZ (ZIP archive)
+        try:
+            with zipfile.ZipFile(str(cbz_path), 'w', zipfile.ZIP_DEFLATED) as zf:
+                for f in image_files:
+                    arcname = f.relative_to(tmp)
+                    zf.write(str(f), str(arcname))
+            log(f"Converted CBR→CBZ: {cbr_path.name} -> {cbz_path.name} ({len(image_files)} files)", mode)
+
+            # Remove original CBR
+            cbr_path.unlink()
+            return cbz_path
+        except Exception as e:
+            log(f"CBZ creation failed for {cbr_path.name}: {e}", mode)
+            # Clean up partial CBZ
+            cbz_path.unlink(missing_ok=True)
+            return None
 
 def is_entry_archive(p: Path):
     return p.suffix.lower() in ARCHIVE_EXTS
@@ -183,7 +246,7 @@ def process_folder(folder: Path, dest_dir: Path, mode: str):
     for root, _, files in os.walk(folder):
         for name in files:
             src = Path(root) / name
-            if is_video(src) or is_entry_archive(src):
+            if is_media(src) or is_entry_archive(src):
                 dst = dest_dir / name
                 if dst.exists():
                     # Collision: disambiguate using source subfolder path
@@ -208,7 +271,7 @@ def process_folder(folder: Path, dest_dir: Path, mode: str):
                 try:
                     shutil.move(str(src), str(dst))
                     log(f"Promoted: {src.name} -> Root", mode)
-                    if is_video(dst):
+                    if is_video(dst) and mode == 'series':
                         try:
                             rel = src.relative_to(folder)
                             parts = list(rel.parts[:-1])
@@ -247,6 +310,10 @@ def main(mode):
         pipeline = config['paths']['series_pipeline']
     elif mode == 'movies':
         pipeline = config['paths']['movie_pipeline']
+    elif mode == 'music':
+        pipeline = config['paths']['music_pipeline']
+    elif mode == 'books':
+        pipeline = config['paths']['books_pipeline']
     else:
         sys.exit(1)
 
@@ -301,6 +368,10 @@ def main(mode):
                     for part in group:
                         processed_groups.add(str(part))
 
+                # --- CBR→CBZ conversion (books mode only) ---
+                elif item.is_file() and mode == 'books' and item.suffix.lower() == '.cbr':
+                    convert_cbr_to_cbz(item, mode)
+
                 # --- Folders: flatten ---
                 elif item.is_dir():
                     process_folder(item, DROP_DIR, mode)
@@ -312,7 +383,7 @@ def main(mode):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", required=True, choices=['series', 'movies'])
+    parser.add_argument("--mode", required=True, choices=['series', 'movies', 'music', 'books'])
     args = parser.parse_args()
     log_obj, _ = common.setup_logger("autoharbor", args.mode)
     main(args.mode)

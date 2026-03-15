@@ -38,43 +38,20 @@ NOISE_LEARNER = NoiseLearner(CFG)
 
 def _write_reason(dest_path, confidence, candidate, best_match, best_result=None):
     """Write a .reason.json sidecar next to a file moved to Review."""
-    try:
-        data = {
-            "source": "movieprocessor", "reason": "low_confidence",
-            "confidence": confidence, "threshold": CONFIDENCE_MOVIE,
-            "candidate": candidate, "best_match": best_match,
-            "detail": f"Best confidence {confidence}% below threshold {CONFIDENCE_MOVIE}%",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-        # Store full match data for the Approve feature
-        if best_result:
-            data["match_data"] = {
-                "source": best_result.get("source"),
-                "source_id": str(best_result.get("source_id", "")),
-                "title": best_result.get("title"),
-                "year": best_result.get("year"),
-            }
-        reason_path = dest_path.with_name(dest_path.name + ".reason.json")
-        reason_path.write_text(json.dumps(data, indent=2), encoding='utf-8')
-    except Exception:
-        pass
+    extra = None
+    if best_result:
+        extra = {"match_data": {
+            "source": best_result.get("source"),
+            "source_id": str(best_result.get("source_id", "")),
+            "title": best_result.get("title"),
+            "year": best_result.get("year"),
+        }}
+    common.write_reason_sidecar(dest_path, "movieprocessor", confidence,
+                                CONFIDENCE_MOVIE, candidate, best_match, extra=extra)
 
 def _write_dup(dest_path, final_name, existing_path):
     """Write a .dup.json sidecar next to a file moved to Duplicates."""
-    try:
-        dup_path = dest_path.with_name(dest_path.name + ".dup.json")
-        existing_size = existing_path.stat().st_size if existing_path.exists() else 0
-        new_size = dest_path.stat().st_size if dest_path.exists() else 0
-        dup_path.write_text(json.dumps({
-            "source": "movieprocessor",
-            "final_name": final_name,
-            "existing_path": str(existing_path),
-            "existing_size_mb": round(existing_size / (1024*1024), 1),
-            "new_size_mb": round(new_size / (1024*1024), 1),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }, indent=2), encoding='utf-8')
-    except Exception:
-        pass
+    common.write_dup_sidecar(dest_path, "movieprocessor", final_name, existing_path)
 
 # ================= CORE LOGIC =================
 def process_movie(file: Path, output_movies: Path, output_anime: Path, output_standup: Path, output_docs: Path, review_dir: Path, dup_dir: Path):
@@ -294,7 +271,14 @@ def process_movie(file: Path, output_movies: Path, output_anime: Path, output_st
     except Exception as e:
         log.debug(f"Cache register skipped: {e}")
 
-    # Noise learner disabled: write-only system (structpilot never reads learned patterns)
+    # Noise learner: always learns (regardless of apply toggle)
+    try:
+        NOISE_LEARNER.learn_from_match(
+            candidate, best_result["title"], file.name,
+            best_result["title"], category="video"
+        )
+    except Exception:
+        pass
 
 def main(mode):
     if mode != 'movies':

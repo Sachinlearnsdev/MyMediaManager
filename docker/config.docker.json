@@ -28,6 +28,19 @@
     "movies": {
       "search": ["tmdb"]
     },
+    "music": {
+      "search": ["musicbrainz"],
+      "fingerprint": ["acoustid"]
+    },
+    "books": {
+      "search": ["openlibrary", "googlebooks"]
+    },
+    "comics": {
+      "search": ["comicvine"]
+    },
+    "manga_books": {
+      "search": ["anilist", "mal"]
+    },
     "classifier": {
       "anime_check": ["mal", "jikan"],
       "tv_check": ["tvdb"]
@@ -44,6 +57,8 @@
   "flow_control": {
     "series_quota_gb": 100,
     "movies_quota_gb": 100,
+    "music_quota_gb": 100,
+    "books_quota_gb": 50,
     "min_ssd_free_gb": 10
   },
   "logging": {
@@ -54,8 +69,8 @@
   "paths": {
     "roots": {
       "manager": "/app",
-      "data": "",
-      "library": ""
+      "data": "/data",
+      "library": "/library"
     },
     "series_pipeline": {
       "input_drop": "Drop_Shows",
@@ -87,6 +102,33 @@
         "movies": ".Work/Movies/Staged"
       }
     },
+    "music_pipeline": {
+      "input_drop": "Drop_Music",
+      "system_drop": ".Work/Music/Intake",
+      "system_home": ".Work/Music",
+      "processing": ".Work/Music/Processing",
+      "failed": ".Work/Music/Failed",
+      "review": "Review/Music",
+      "duplicates": "Duplicates/Music",
+      "staged": {
+        "music": ".Work/Music/Staged/Music",
+        "audiobooks": ".Work/Music/Staged/Audiobooks"
+      }
+    },
+    "books_pipeline": {
+      "input_drop": "Drop_Books",
+      "system_drop": ".Work/Books/Intake",
+      "system_home": ".Work/Books",
+      "processing": ".Work/Books/Processing",
+      "failed": ".Work/Books/Failed",
+      "review": "Review/Books",
+      "duplicates": "Duplicates/Books",
+      "staged": {
+        "books": ".Work/Books/Staged/Books",
+        "comics": ".Work/Books/Staged/Comics",
+        "manga": ".Work/Books/Staged/Manga"
+      }
+    },
     "output": {
       "tv": "TV Shows",
       "cartoons": "Cartoons",
@@ -97,9 +139,21 @@
       "talkshow": "Talk Shows",
       "documentaries_series": "Documentaries/Series",
       "documentaries_movies": "Documentaries/Movies",
-      "standup": "Stand-Up"
+      "standup": "Stand-Up",
+      "music": "Audio & Music/Music",
+      "audiobooks": "Audio & Music/Audiobooks",
+      "books": "Books & Comics/Books",
+      "comics": "Books & Comics/Comics",
+      "manga": "Books & Comics/Manga"
     },
     "trash_root": "Trash"
+  },
+  "output_formats": {
+    "music": "{artist}/{album} ({year})/{track:02d} - {title}.{ext}",
+    "audiobooks": "{author}/{title} ({year})/{part}.{ext}",
+    "books": "{author}/{title} ({year}).{ext}",
+    "comics": "{publisher}/{series}/{series} {number:03d} ({year}).{ext}",
+    "manga": "{series}/{series} Vol.{volume:02d}.{ext}"
   },
   "tuning": {
     "scan_interval": 5,
@@ -111,6 +165,10 @@
     "confidence_tv": 60,
     "confidence_cartoon": 60,
     "confidence_movie": 75,
+    "confidence_music": 60,
+    "confidence_audiobook": 60,
+    "confidence_book": 60,
+    "confidence_comic": 60,
     "trash_max_age_days": 7,
     "review_max_age_days": 14
   },

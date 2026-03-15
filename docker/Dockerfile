@@ -9,6 +9,7 @@ LABEL description="Automated media organization pipeline for Plex/Jellyfin"
 RUN sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
+        curl \
         unrar \
         p7zip-full \
         tini \

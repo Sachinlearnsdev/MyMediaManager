@@ -30,6 +30,8 @@ from bin.constants import (
     JIKAN_BASE_URL, ANILIST_API_URL, MAL_OFFICIAL_BASE_URL,
     TVDB_API_BASE, TMDB_API_BASE,
     TRAKT_API_BASE, TVMAZE_API_BASE, KITSU_API_BASE, OMDB_API_BASE,
+    MUSICBRAINZ_API_BASE, ACOUSTID_API_BASE,
+    OPENLIBRARY_API_BASE, GOOGLEBOOKS_API_BASE, COMICVINE_API_BASE,
 )
 
 import logging
@@ -78,6 +80,32 @@ class RetryPolicy:
                 if attempt < self.max_retries:
                     time.sleep(self.base_delay * (2 ** attempt))
         raise last_exc if last_exc else RuntimeError("RetryPolicy exhausted")
+
+
+# ============================================================
+# COVER ART UTILITY
+# ============================================================
+
+def download_cover(url: str, dest_dir: Path, filename: str = "cover.jpg", timeout: int = 15) -> Path | None:
+    """Download a cover art image to dest_dir/filename. Returns path on success, None on failure.
+    Skips download if cover already exists."""
+    if not url:
+        return None
+    cover_path = dest_dir / filename
+    if cover_path.exists():
+        return cover_path
+    try:
+        resp = requests.get(url, timeout=timeout, stream=True)
+        if resp.status_code == 200:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            with open(cover_path, 'wb') as f:
+                for chunk in resp.iter_content(8192):
+                    f.write(chunk)
+            _log.debug(f"Cover downloaded: {cover_path}")
+            return cover_path
+    except Exception as e:
+        _log.debug(f"Cover download failed ({url}): {e}")
+    return None
 
 
 # ============================================================
@@ -576,6 +604,58 @@ class AniListClient(MediaSource):
         except Exception:
             pass
         return None
+
+    def search_manga(self, query):
+        """Search for manga on AniList (type: MANGA)."""
+        self.limiter.wait()
+        gql = '''
+        query ($search: String) {
+          Page(perPage: 10) {
+            media(search: $search, type: MANGA) {
+              id
+              idMal
+              title { english romaji native }
+              format
+              startDate { year }
+              volumes
+              chapters
+              staff { edges { role node { name { full } } } }
+            }
+          }
+        }
+        '''
+        try:
+            resp = self.retry.execute(
+                self.session.post, ANILIST_API_URL,
+                json={'query': gql, 'variables': {'search': query}}, timeout=10
+            )
+            if resp.status_code != 200:
+                return []
+            results = []
+            for m in resp.json().get('data', {}).get('Page', {}).get('media', []):
+                # Extract author from staff
+                author = None
+                for edge in (m.get('staff') or {}).get('edges', []):
+                    role = (edge.get('role') or '').lower()
+                    if 'story' in role or 'original' in role:
+                        author = edge.get('node', {}).get('name', {}).get('full')
+                        break
+                results.append(self._std_result(
+                    source='anilist',
+                    source_id=m.get('idMal') or m.get('id'),
+                    title=m.get('title', {}).get('romaji', ''),
+                    title_english=m.get('title', {}).get('english'),
+                    media_type='manga',
+                    year=m.get('startDate', {}).get('year'),
+                    anilist_id=m.get('id'),
+                    volumes=m.get('volumes'),
+                    chapters=m.get('chapters'),
+                    author=author,
+                ))
+            return results
+        except Exception as e:
+            _log.warning(f"AniList manga search error: {e}")
+        return []
 
     def get_episodes(self, mal_id, season=1):
         """Fetch episode titles via AniList streaming episodes."""
@@ -1173,19 +1253,703 @@ class OMDbClient(MediaSource):
 
 
 # ============================================================
+# OpenLibrary (Books — free, no key)
+# ============================================================
+
+class OpenLibraryClient(MediaSource):
+    SOURCE_NAME = "openlibrary"
+
+    def __init__(self, cfg, cache_dir):
+        super().__init__(cfg, cache_dir)
+        self.limiter = RateLimiter(min_interval=1.0)
+
+    def search(self, query, media_type="book"):
+        self.limiter.wait()
+        cached = self._read_cache("search", query, ttl_hours=72)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, f"{OPENLIBRARY_API_BASE}/search.json",
+                params={"q": query, "limit": 10, "fields": "key,title,author_name,first_publish_year,isbn,subject,publisher,cover_i"},
+                timeout=15
+            )
+            if resp.status_code != 200:
+                return []
+            results = []
+            for doc in resp.json().get('docs', []):
+                authors = doc.get('author_name', [])
+                subjects = doc.get('subject', [])[:10]
+                isbns = doc.get('isbn', [])
+                results.append(self._std_result(
+                    source='openlibrary',
+                    source_id=doc.get('key', ''),
+                    title=doc.get('title', ''),
+                    title_english=None,
+                    media_type='book',
+                    year=doc.get('first_publish_year'),
+                    author=authors[0] if authors else None,
+                    authors=authors,
+                    isbn=isbns[0] if isbns else None,
+                    subjects=subjects,
+                    publisher=(doc.get('publisher') or [None])[0],
+                    cover_id=doc.get('cover_i'),
+                ))
+            self._write_cache("search", query, results)
+            return results
+        except Exception as e:
+            _log.warning(f"OpenLibrary search error: {e}")
+        return []
+
+    def search_by_isbn(self, isbn):
+        """Direct ISBN lookup — returns a single result or None."""
+        self.limiter.wait()
+        cached = self._read_cache("isbn", isbn, ttl_hours=168)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, f"{OPENLIBRARY_API_BASE}/isbn/{isbn}.json",
+                timeout=10
+            )
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            # Fetch work for subjects
+            work_key = None
+            for w in data.get('works', []):
+                work_key = w.get('key')
+                break
+            subjects = []
+            if work_key:
+                try:
+                    wresp = self.session.get(f"{OPENLIBRARY_API_BASE}{work_key}.json", timeout=10)
+                    if wresp.status_code == 200:
+                        subjects = wresp.json().get('subjects', [])[:10]
+                except Exception:
+                    pass
+            result = self._std_result(
+                source='openlibrary',
+                source_id=data.get('key', ''),
+                title=data.get('title', ''),
+                title_english=None,
+                media_type='book',
+                year=data.get('publish_date', '')[:4] if data.get('publish_date') else None,
+                isbn=isbn,
+                subjects=subjects,
+                publisher=(data.get('publishers') or [None])[0],
+            )
+            self._write_cache("isbn", isbn, result)
+            return result
+        except Exception as e:
+            _log.warning(f"OpenLibrary ISBN error: {e}")
+        return None
+
+
+# ============================================================
+# Google Books (Books — free, optional key)
+# ============================================================
+
+class GoogleBooksClient(MediaSource):
+    SOURCE_NAME = "googlebooks"
+
+    def __init__(self, cfg, cache_dir):
+        super().__init__(cfg, cache_dir)
+        self.api_key = cfg.get('api_keys', {}).get('googlebooks', '').strip()
+        self.limiter = RateLimiter(min_interval=1.0)
+
+    def search(self, query, media_type="book"):
+        self.limiter.wait()
+        cached = self._read_cache("search", query, ttl_hours=72)
+        if cached is not None:
+            return cached
+        try:
+            params = {"q": query, "maxResults": 10}
+            if self.api_key:
+                params["key"] = self.api_key
+            resp = self.retry.execute(
+                self.session.get, f"{GOOGLEBOOKS_API_BASE}/volumes",
+                params=params, timeout=15
+            )
+            if resp.status_code != 200:
+                return []
+            results = []
+            for item in resp.json().get('items', []):
+                vol = item.get('volumeInfo', {})
+                authors = vol.get('authors', [])
+                ids = {i['type']: i['identifier'] for i in vol.get('industryIdentifiers', [])}
+                categories = vol.get('categories', [])
+                results.append(self._std_result(
+                    source='googlebooks',
+                    source_id=item.get('id', ''),
+                    title=vol.get('title', ''),
+                    title_english=None,
+                    media_type='book',
+                    year=(vol.get('publishedDate') or '')[:4] or None,
+                    author=authors[0] if authors else None,
+                    authors=authors,
+                    isbn=ids.get('ISBN_13') or ids.get('ISBN_10'),
+                    subjects=categories,
+                    publisher=vol.get('publisher'),
+                    page_count=vol.get('pageCount'),
+                    description=vol.get('description'),
+                    cover_url=(vol.get('imageLinks') or {}).get('thumbnail'),
+                ))
+            self._write_cache("search", query, results)
+            return results
+        except Exception as e:
+            _log.warning(f"GoogleBooks search error: {e}")
+        return []
+
+    def search_by_isbn(self, isbn):
+        """ISBN-specific search."""
+        results = self.search(f"isbn:{isbn}", media_type="book")
+        return results[0] if results else None
+
+
+# ============================================================
+# ComicVine (Comics — free, API key required)
+# ============================================================
+
+class ComicVineClient(MediaSource):
+    SOURCE_NAME = "comicvine"
+
+    def __init__(self, cfg, cache_dir):
+        super().__init__(cfg, cache_dir)
+        self.api_key = cfg.get('api_keys', {}).get('comicvine', '').strip()
+        self.available = bool(self.api_key)
+        self.limiter = RateLimiter(min_interval=1.8)  # 200/hr = ~1.8s
+        self.session.headers.update({'User-Agent': 'MyMediaManager/1.0'})
+
+    def search(self, query, media_type="comic"):
+        if not self.available:
+            return []
+        self.limiter.wait()
+        cached = self._read_cache("search", query, ttl_hours=72)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, f"{COMICVINE_API_BASE}/search/",
+                params={
+                    "api_key": self.api_key,
+                    "format": "json",
+                    "query": query,
+                    "resources": "volume",
+                    "limit": 10,
+                    "field_list": "id,name,start_year,publisher,count_of_issues,image,deck",
+                },
+                timeout=15
+            )
+            if resp.status_code == 401:
+                self.available = False
+                return []
+            if resp.status_code != 200:
+                return []
+            results = []
+            for item in resp.json().get('results', []):
+                pub = item.get('publisher') or {}
+                results.append(self._std_result(
+                    source='comicvine',
+                    source_id=item.get('id'),
+                    title=item.get('name', ''),
+                    title_english=None,
+                    media_type='comic',
+                    year=item.get('start_year'),
+                    publisher=pub.get('name'),
+                    issue_count=item.get('count_of_issues'),
+                    description=item.get('deck'),
+                    cover_url=(item.get('image') or {}).get('medium_url'),
+                ))
+            self._write_cache("search", query, results)
+            return results
+        except Exception as e:
+            _log.warning(f"ComicVine search error: {e}")
+        return []
+
+    def get_details(self, volume_id):
+        """Get detailed volume info including issues."""
+        if not self.available:
+            return None
+        self.limiter.wait()
+        cached = self._read_cache("details", volume_id, ttl_hours=72)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, f"{COMICVINE_API_BASE}/volume/4050-{volume_id}/",
+                params={
+                    "api_key": self.api_key,
+                    "format": "json",
+                    "field_list": "id,name,start_year,publisher,issues,count_of_issues",
+                },
+                timeout=15
+            )
+            if resp.status_code == 200:
+                data = resp.json().get('results')
+                if data:
+                    self._write_cache("details", volume_id, data)
+                    return data
+        except Exception as e:
+            _log.warning(f"ComicVine details error: {e}")
+        return None
+
+
+# ============================================================
+# MusicBrainz (Music — free, no key, 1 req/sec)
+# ============================================================
+
+class MusicBrainzClient(MediaSource):
+    SOURCE_NAME = "musicbrainz"
+
+    def __init__(self, cfg, cache_dir):
+        super().__init__(cfg, cache_dir)
+        self.limiter = RateLimiter(min_interval=1.1)
+        self.session.headers.update({
+            'User-Agent': 'MyMediaManager/1.0 (https://github.com/mymediamanager)',
+            'Accept': 'application/json',
+        })
+
+    def search(self, query, media_type="recording"):
+        self.limiter.wait()
+        cached = self._read_cache("search", f"{media_type}:{query}", ttl_hours=72)
+        if cached is not None:
+            return cached
+        try:
+            if media_type == "release":
+                resp = self.retry.execute(
+                    self.session.get, f"{MUSICBRAINZ_API_BASE}/release/",
+                    params={"query": query, "limit": 10, "fmt": "json"},
+                    timeout=15
+                )
+                key = 'releases'
+            elif media_type == "artist":
+                resp = self.retry.execute(
+                    self.session.get, f"{MUSICBRAINZ_API_BASE}/artist/",
+                    params={"query": query, "limit": 10, "fmt": "json"},
+                    timeout=15
+                )
+                key = 'artists'
+            else:
+                # Default: recording search
+                resp = self.retry.execute(
+                    self.session.get, f"{MUSICBRAINZ_API_BASE}/recording/",
+                    params={"query": query, "limit": 10, "fmt": "json"},
+                    timeout=15
+                )
+                key = 'recordings'
+
+            if resp.status_code != 200:
+                return []
+
+            results = []
+            for item in resp.json().get(key, []):
+                if key == 'recordings':
+                    artist_credit = item.get('artist-credit', [])
+                    artist = artist_credit[0].get('name', '') if artist_credit else ''
+                    releases = item.get('releases', [])
+                    album = releases[0].get('title', '') if releases else ''
+                    year = None
+                    if releases and releases[0].get('date'):
+                        year = releases[0]['date'][:4]
+                    results.append(self._std_result(
+                        source='musicbrainz',
+                        source_id=item.get('id'),
+                        title=item.get('title', ''),
+                        title_english=None,
+                        media_type='recording',
+                        year=year,
+                        artist=artist,
+                        album=album,
+                        mbid=item.get('id'),
+                        score=item.get('score'),
+                    ))
+                elif key == 'releases':
+                    artist_credit = item.get('artist-credit', [])
+                    artist = artist_credit[0].get('name', '') if artist_credit else ''
+                    year = (item.get('date') or '')[:4] or None
+                    results.append(self._std_result(
+                        source='musicbrainz',
+                        source_id=item.get('id'),
+                        title=item.get('title', ''),
+                        title_english=None,
+                        media_type='release',
+                        year=year,
+                        artist=artist,
+                        mbid=item.get('id'),
+                        score=item.get('score'),
+                        track_count=item.get('track-count'),
+                    ))
+                elif key == 'artists':
+                    results.append(self._std_result(
+                        source='musicbrainz',
+                        source_id=item.get('id'),
+                        title=item.get('name', ''),
+                        title_english=None,
+                        media_type='artist',
+                        year=None,
+                        mbid=item.get('id'),
+                        score=item.get('score'),
+                    ))
+            self._write_cache("search", f"{media_type}:{query}", results)
+            return results
+        except Exception as e:
+            _log.warning(f"MusicBrainz search error: {e}")
+        return []
+
+    def search_recording(self, artist, title):
+        """Structured search for a recording by artist + title."""
+        query = f'recording:"{title}" AND artist:"{artist}"'
+        return self.search(query, media_type="recording")
+
+    def search_release(self, artist, album):
+        """Structured search for a release/album by artist + album name."""
+        query = f'release:"{album}" AND artist:"{artist}"'
+        return self.search(query, media_type="release")
+
+    def get_details(self, mbid):
+        """Fetch recording details with artist and release info."""
+        self.limiter.wait()
+        cached = self._read_cache("details", mbid, ttl_hours=168)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, f"{MUSICBRAINZ_API_BASE}/recording/{mbid}",
+                params={"inc": "artists+releases", "fmt": "json"},
+                timeout=15
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                self._write_cache("details", mbid, data)
+                return data
+        except Exception as e:
+            _log.warning(f"MusicBrainz details error: {e}")
+        return None
+
+
+# ============================================================
+# AcoustID (Fingerprinting — free, key required)
+# ============================================================
+
+class AcoustIDClient(MediaSource):
+    SOURCE_NAME = "acoustid"
+
+    def __init__(self, cfg, cache_dir):
+        super().__init__(cfg, cache_dir)
+        self.api_key = cfg.get('api_keys', {}).get('acoustid', '').strip()
+        self.available = bool(self.api_key)
+        self.limiter = RateLimiter(min_interval=0.35)  # ~3/sec
+
+    def search(self, query, media_type="fingerprint"):
+        """Not used — use lookup() instead."""
+        return []
+
+    def lookup(self, fingerprint, duration):
+        """Look up a recording by audio fingerprint + duration."""
+        if not self.available:
+            return []
+        self.limiter.wait()
+        cache_key = f"{duration}:{fingerprint[:64]}"
+        cached = self._read_cache("lookup", cache_key, ttl_hours=168)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.post, f"{ACOUSTID_API_BASE}/lookup",
+                data={
+                    "client": self.api_key,
+                    "fingerprint": fingerprint,
+                    "duration": str(int(duration)),
+                    "meta": "recordings+releasegroups+compress",
+                },
+                timeout=15
+            )
+            if resp.status_code != 200:
+                return []
+            results = []
+            for result in resp.json().get('results', []):
+                score = result.get('score', 0)
+                for rec in result.get('recordings', []):
+                    artists = rec.get('artists', [])
+                    artist = artists[0].get('name', '') if artists else ''
+                    rgs = rec.get('releasegroups', [])
+                    album = rgs[0].get('title', '') if rgs else ''
+                    results.append(self._std_result(
+                        source='acoustid',
+                        source_id=rec.get('id'),
+                        title=rec.get('title', ''),
+                        title_english=None,
+                        media_type='recording',
+                        year=None,
+                        artist=artist,
+                        album=album,
+                        mbid=rec.get('id'),
+                        score=score,
+                    ))
+            self._write_cache("lookup", cache_key, results)
+            return results
+        except Exception as e:
+            _log.warning(f"AcoustID lookup error: {e}")
+        return []
+
+    @staticmethod
+    def generate_fingerprint(file_path):
+        """Generate AcoustID fingerprint using fpcalc binary or pyacoustid."""
+        try:
+            import acoustid
+            duration, fingerprint = acoustid.fingerprint_file(str(file_path))
+            return fingerprint, duration
+        except ImportError:
+            _log.debug("pyacoustid not installed — fingerprinting unavailable")
+        except Exception as e:
+            _log.warning(f"Fingerprint generation error: {e}")
+        return None, None
+
+
+# ============================================================
+# Spotify (Music enrichment — free, key required)
+# ============================================================
+
+class SpotifyClient(MediaSource):
+    SOURCE_NAME = "spotify"
+
+    def __init__(self, cfg, cache_dir):
+        super().__init__(cfg, cache_dir)
+        client_id = cfg.get('api_keys', {}).get('spotify', '').strip()
+        client_secret = cfg.get('api_keys', {}).get('spotify_secret', '').strip()
+        self.available = bool(client_id and client_secret)
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._token = None
+        self._token_expires = 0
+        self.limiter = RateLimiter(min_interval=0.1)
+
+    def _get_token(self):
+        if self._token and time.time() < self._token_expires - 60:
+            return self._token
+        try:
+            import base64
+            creds = base64.b64encode(f"{self._client_id}:{self._client_secret}".encode()).decode()
+            resp = self.session.post(
+                "https://accounts.spotify.com/api/token",
+                headers={"Authorization": f"Basic {creds}"},
+                data={"grant_type": "client_credentials"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                self._token = data['access_token']
+                self._token_expires = time.time() + data.get('expires_in', 3600)
+                return self._token
+        except Exception as e:
+            _log.warning(f"Spotify auth error: {e}")
+        self.available = False
+        return None
+
+    def search(self, query, media_type="track"):
+        if not self.available:
+            return []
+        token = self._get_token()
+        if not token:
+            return []
+        self.limiter.wait()
+        cached = self._read_cache("search", f"{media_type}:{query}", ttl_hours=72)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, "https://api.spotify.com/v1/search",
+                headers={"Authorization": f"Bearer {token}"},
+                params={"q": query, "type": media_type, "limit": 10},
+                timeout=10
+            )
+            if resp.status_code == 401:
+                self._token = None
+                return []
+            if resp.status_code != 200:
+                return []
+            results = []
+            items_key = f"{media_type}s"
+            for item in resp.json().get(items_key, {}).get('items', []):
+                if media_type == "track":
+                    artists = [a.get('name', '') for a in item.get('artists', [])]
+                    album = item.get('album', {})
+                    results.append(self._std_result(
+                        source='spotify',
+                        source_id=item.get('id'),
+                        title=item.get('name', ''),
+                        title_english=None,
+                        media_type='track',
+                        year=(album.get('release_date') or '')[:4] or None,
+                        artist=artists[0] if artists else '',
+                        album=album.get('name', ''),
+                        popularity=item.get('popularity'),
+                        cover_url=(album.get('images') or [{}])[0].get('url'),
+                        genres=item.get('genres', []),
+                    ))
+                elif media_type == "album":
+                    artists = [a.get('name', '') for a in item.get('artists', [])]
+                    results.append(self._std_result(
+                        source='spotify',
+                        source_id=item.get('id'),
+                        title=item.get('name', ''),
+                        title_english=None,
+                        media_type='album',
+                        year=(item.get('release_date') or '')[:4] or None,
+                        artist=artists[0] if artists else '',
+                        track_count=item.get('total_tracks'),
+                        cover_url=(item.get('images') or [{}])[0].get('url'),
+                    ))
+            self._write_cache("search", f"{media_type}:{query}", results)
+            return results
+        except Exception as e:
+            _log.warning(f"Spotify search error: {e}")
+        return []
+
+    def search_track(self, artist, title):
+        """Search for a specific track by artist + title."""
+        return self.search(f"artist:{artist} track:{title}", media_type="track")
+
+
+# ============================================================
+# Last.fm (Music enrichment — free, key required)
+# ============================================================
+
+class LastFMClient(MediaSource):
+    SOURCE_NAME = "lastfm"
+
+    def __init__(self, cfg, cache_dir):
+        super().__init__(cfg, cache_dir)
+        self.api_key = cfg.get('api_keys', {}).get('lastfm', '').strip()
+        self.available = bool(self.api_key)
+        self.limiter = RateLimiter(min_interval=0.2)
+
+    def search(self, query, media_type="track"):
+        if not self.available:
+            return []
+        self.limiter.wait()
+        cached = self._read_cache("search", f"{media_type}:{query}", ttl_hours=72)
+        if cached is not None:
+            return cached
+        try:
+            method = "track.search" if media_type == "track" else "album.search"
+            param_key = "track" if media_type == "track" else "album"
+            resp = self.retry.execute(
+                self.session.get, "https://ws.audioscrobbler.com/2.0/",
+                params={
+                    "method": method,
+                    "api_key": self.api_key,
+                    param_key: query,
+                    "format": "json",
+                    "limit": 10,
+                },
+                timeout=10
+            )
+            if resp.status_code != 200:
+                return []
+            results = []
+            container = resp.json().get('results', {})
+            matches_key = 'trackmatches' if media_type == "track" else 'albummatches'
+            item_key = 'track' if media_type == "track" else 'album'
+            for item in container.get(matches_key, {}).get(item_key, []):
+                results.append(self._std_result(
+                    source='lastfm',
+                    source_id=item.get('mbid') or item.get('url', ''),
+                    title=item.get('name', ''),
+                    title_english=None,
+                    media_type=media_type,
+                    year=None,
+                    artist=item.get('artist', ''),
+                    mbid=item.get('mbid'),
+                    listeners=item.get('listeners'),
+                ))
+            self._write_cache("search", f"{media_type}:{query}", results)
+            return results
+        except Exception as e:
+            _log.warning(f"LastFM search error: {e}")
+        return []
+
+    def get_track_info(self, artist, track):
+        """Fetch detailed track info including tags/genres."""
+        if not self.available:
+            return None
+        self.limiter.wait()
+        cached = self._read_cache("trackinfo", f"{artist}:{track}", ttl_hours=168)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, "https://ws.audioscrobbler.com/2.0/",
+                params={
+                    "method": "track.getInfo",
+                    "api_key": self.api_key,
+                    "artist": artist,
+                    "track": track,
+                    "format": "json",
+                },
+                timeout=10
+            )
+            if resp.status_code == 200:
+                data = resp.json().get('track')
+                if data:
+                    self._write_cache("trackinfo", f"{artist}:{track}", data)
+                    return data
+        except Exception as e:
+            _log.warning(f"LastFM track info error: {e}")
+        return None
+
+    def get_album_info(self, artist, album):
+        """Fetch detailed album info including tags/genres."""
+        if not self.available:
+            return None
+        self.limiter.wait()
+        cached = self._read_cache("albuminfo", f"{artist}:{album}", ttl_hours=168)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.retry.execute(
+                self.session.get, "https://ws.audioscrobbler.com/2.0/",
+                params={
+                    "method": "album.getInfo",
+                    "api_key": self.api_key,
+                    "artist": artist,
+                    "album": album,
+                    "format": "json",
+                },
+                timeout=10
+            )
+            if resp.status_code == 200:
+                data = resp.json().get('album')
+                if data:
+                    self._write_cache("albuminfo", f"{artist}:{album}", data)
+                    return data
+        except Exception as e:
+            _log.warning(f"LastFM album info error: {e}")
+        return None
+
+
+# ============================================================
 # SOURCE REGISTRY + POOL
 # ============================================================
 
 SOURCE_REGISTRY = {
-    'mal':    MALClient,
-    'jikan':  JikanClient,
-    'anilist': AniListClient,
-    'kitsu':  KitsuClient,
-    'tvdb':   TVDBClient,
-    'tmdb':   TMDBClient,
-    'trakt':  TraktClient,
-    'tvmaze': TVmazeClient,
-    'omdb':   OMDbClient,
+    'mal':          MALClient,
+    'jikan':        JikanClient,
+    'anilist':      AniListClient,
+    'kitsu':        KitsuClient,
+    'tvdb':         TVDBClient,
+    'tmdb':         TMDBClient,
+    'trakt':        TraktClient,
+    'tvmaze':       TVmazeClient,
+    'omdb':         OMDbClient,
+    'openlibrary':  OpenLibraryClient,
+    'googlebooks':  GoogleBooksClient,
+    'comicvine':    ComicVineClient,
+    'musicbrainz':  MusicBrainzClient,
+    'acoustid':     AcoustIDClient,
+    'spotify':      SpotifyClient,
+    'lastfm':       LastFMClient,
 }
 
 

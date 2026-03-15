@@ -16,6 +16,7 @@ if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
 from bin.constants import VIDEO_EXTS, SCAN_INTERVAL, NOISE_PATTERNS, WORD_NUM
+from bin.noise_learner import NoiseLearner
 import common
 
 # Regex
@@ -140,13 +141,32 @@ def strip_season_info(stem):
 
 # ================= PROCESSOR =================
 class StructPilot:
-    def __init__(self, input_dir, output_dir, mode):
+    def __init__(self, input_dir, output_dir, mode, noise_learner=None):
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.mode = mode
+        self.noise_learner = noise_learner
 
         if not self.output_dir.exists():
             self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _strip_learned_noise(self, name: str) -> str:
+        """Strip learned noise from trailing end of extracted name only.
+        Position-aware: never touches leading tokens (the actual title)."""
+        if not self.noise_learner or not self.noise_learner.is_apply_enabled():
+            return name
+        patterns = self.noise_learner.get_active_patterns("video")
+        if not patterns:
+            return name
+        tokens = name.split()
+        if not tokens:
+            return name
+        # Strip from the right side only
+        while len(tokens) > 1 and any(
+            re.match(p, tokens[-1], re.I) for p in patterns
+        ):
+            tokens.pop()
+        return " ".join(tokens)
 
     def process_series(self, video_path, clean_name, ctx, ctx_exists):
         final_name = None
@@ -158,6 +178,7 @@ class StructPilot:
         if hum_s is not None and hum_e is not None:
             show_name = strip_season_info(clean_name)
             if not show_name: show_name = clean_name.split("Season")[0].strip()
+            show_name = self._strip_learned_noise(show_name)
             final_name = f"{show_name} S{hum_s:02}E{hum_e:02}{ext}"
             log(f"Human Format -> {final_name}")
 
@@ -168,6 +189,7 @@ class StructPilot:
                 s = int(m.group(1))
                 e = int(m.group(2))
                 show_name = clean_name[:m.start()].strip()
+                show_name = self._strip_learned_noise(show_name)
                 final_name = f"{show_name} S{s:02}E{e:02}{ext}"
                 log(f"SxxEyy Format -> {final_name}")
 
@@ -195,6 +217,7 @@ class StructPilot:
 
     def process_movie(self, video_path, clean_name):
         ext = video_path.suffix
+        clean_name = self._strip_learned_noise(clean_name)
         final_name = f"{clean_name}{ext}"
         return sanitize_filename(final_name)
 
@@ -255,4 +278,5 @@ if __name__ == "__main__":
         log(f"Input dir missing, creating: {INPUT_DIR}", "warning")
         INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    StructPilot(INPUT_DIR, OUTPUT_DIR, args.mode).run()
+    noise_learner = NoiseLearner(cfg)
+    StructPilot(INPUT_DIR, OUTPUT_DIR, args.mode, noise_learner).run()

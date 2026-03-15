@@ -55,9 +55,11 @@
             </div>
             <p class="settings-desc">Move files from Processing back to Drop (re-enter pipeline).</p>
             <select x-model="pipeline" style="margin-bottom:0.75rem">
-                <option value="both">Both Pipelines</option>
+                <option value="all">All Pipelines</option>
                 <option value="series">Series Only</option>
                 <option value="movies">Movies Only</option>
+                <option value="music">Music Only</option>
+                <option value="books">Books Only</option>
             </select>
             <button class="btn btn-primary btn-sm" @click="flushStuck()" :disabled="workingAction !== ''">
                 <span class="spinner" x-show="workingAction === 'flush'" x-cloak></span>
@@ -71,9 +73,11 @@
             </div>
             <p class="settings-desc">Move files from Failed back to Drop for reprocessing.</p>
             <select x-model="pipeline" style="margin-bottom:0.75rem">
-                <option value="both">Both Pipelines</option>
+                <option value="all">All Pipelines</option>
                 <option value="series">Series Only</option>
                 <option value="movies">Movies Only</option>
+                <option value="music">Music Only</option>
+                <option value="books">Books Only</option>
             </select>
             <button class="btn btn-primary btn-sm" @click="retryFailed()" :disabled="workingAction !== ''">
                 <span class="spinner" x-show="workingAction === 'retry-failed'" x-cloak></span>
@@ -130,7 +134,7 @@
 function recoveryApp() {
     return {
         stuck: {{ stuck | tojson }},
-        pipeline: 'both',
+        pipeline: 'all',
         workingAction: '',
         confirmNuclear: false,
 
@@ -169,7 +173,10 @@ function recoveryApp() {
             try {
                 const resp = await fetch('/api/recovery/stuck');
                 this.stuck = await resp.json();
-            } catch (e) {}
+            } catch (e) {
+                console.error('Failed to refresh stuck files:', e);
+                window.toast.error('Failed to refresh stuck files');
+            }
         },
     };
 }

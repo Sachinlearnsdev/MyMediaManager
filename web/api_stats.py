@@ -21,6 +21,11 @@ PROCESSOR_MAP = {
     "talkshowproc":       "talkshow",
     "documentariesproc":  "documentaries",
     "contentclassifier":  "classifier",
+    "musicprocessor":     "music",
+    "audiobookprocessor": "audiobooks",
+    "bookprocessor":      "books",
+    "comicprocessor":     "comics",
+    "mangaprocessor":     "manga",
 }
 
 # Per-processor success/fail/cache patterns (matched against actual log output)
@@ -73,6 +78,36 @@ PROCESSOR_PATTERNS = {
         "cached":    re.compile(r'Cache hit:', re.IGNORECASE),
         "started":   re.compile(r'Classifying:', re.IGNORECASE),
     },
+    "music": {
+        "processed": re.compile(r'MOVED ->', re.IGNORECASE),
+        "failed":    re.compile(r'No meta for|Bad meta for|Loop Error', re.IGNORECASE),
+        "cached":    re.compile(r'Cache hit:', re.IGNORECASE),
+        "started":   re.compile(r'Processing:', re.IGNORECASE),
+    },
+    "audiobooks": {
+        "processed": re.compile(r'MOVED ->', re.IGNORECASE),
+        "failed":    re.compile(r'No meta for|Bad meta for|Loop Error', re.IGNORECASE),
+        "cached":    re.compile(r'Cache hit:', re.IGNORECASE),
+        "started":   re.compile(r'Processing:', re.IGNORECASE),
+    },
+    "books": {
+        "processed": re.compile(r'MOVED ->', re.IGNORECASE),
+        "failed":    re.compile(r'No meta for|Bad meta for|Loop Error', re.IGNORECASE),
+        "cached":    re.compile(r'Cache hit:', re.IGNORECASE),
+        "started":   re.compile(r'Processing:', re.IGNORECASE),
+    },
+    "comics": {
+        "processed": re.compile(r'MOVED ->', re.IGNORECASE),
+        "failed":    re.compile(r'No meta for|Bad meta for|Loop Error', re.IGNORECASE),
+        "cached":    re.compile(r'Cache hit:', re.IGNORECASE),
+        "started":   re.compile(r'Processing:', re.IGNORECASE),
+    },
+    "manga": {
+        "processed": re.compile(r'MOVED ->', re.IGNORECASE),
+        "failed":    re.compile(r'No meta for|Bad meta for|Loop Error', re.IGNORECASE),
+        "cached":    re.compile(r'Cache hit:', re.IGNORECASE),
+        "started":   re.compile(r'Processing:', re.IGNORECASE),
+    },
 }
 
 # Classifier routing patterns (to count what went where)
@@ -83,6 +118,11 @@ CLASSIFIER_ROUTE_PATTERNS = {
     "to_reality":        re.compile(r'Routed:.*-> Reality', re.IGNORECASE),
     "to_talkshow":       re.compile(r'Routed:.*-> TalkShows', re.IGNORECASE),
     "to_documentaries":  re.compile(r'Routed:.*-> Documentaries', re.IGNORECASE),
+    "to_music":          re.compile(r'Routed:.*-> Music', re.IGNORECASE),
+    "to_audiobooks":     re.compile(r'Routed:.*-> Audiobooks', re.IGNORECASE),
+    "to_books":          re.compile(r'Routed:.*-> Books', re.IGNORECASE),
+    "to_comics":         re.compile(r'Routed:.*-> Comics', re.IGNORECASE),
+    "to_manga":          re.compile(r'Routed:.*-> Manga', re.IGNORECASE),
 }
 
 
@@ -118,6 +158,11 @@ class APIStats:
         stats["classifier"]["to_reality"] = 0
         stats["classifier"]["to_talkshow"] = 0
         stats["classifier"]["to_documentaries"] = 0
+        stats["classifier"]["to_music"] = 0
+        stats["classifier"]["to_audiobooks"] = 0
+        stats["classifier"]["to_books"] = 0
+        stats["classifier"]["to_comics"] = 0
+        stats["classifier"]["to_manga"] = 0
 
         if not self.log_dir.exists():
             return stats
@@ -166,7 +211,10 @@ class APIStats:
         # Classifier routes files to processors, so "processed" from both would double-count.
         # Use: classifier.processed = files classified, processor.processed = files imported to library
         library_imports = sum(
-            proc_stats[t]["processed"] for t in ["anime", "tv", "cartoons", "movies", "reality", "talkshow", "documentaries"]
+            proc_stats[t]["processed"] for t in [
+                "anime", "tv", "cartoons", "movies", "reality", "talkshow", "documentaries",
+                "music", "audiobooks", "books", "comics", "manga",
+            ] if t in proc_stats
         )
         classified = proc_stats["classifier"]["processed"]
 
@@ -218,7 +266,7 @@ class APIStats:
         cache_root = Path(self.cache_cfg.get('root', 'cache'))
         total_cache_files = 0
         total_cache_kb = 0
-        for subdir in ["tv", "anime", "movies", "cartoons", "classifier", "reality", "talkshow", "documentaries"]:
+        for subdir in ["tv", "anime", "movies", "cartoons", "classifier", "reality", "talkshow", "documentaries", "music", "audiobooks", "books", "comics", "manga"]:
             d = cache_root / subdir
             if d.exists():
                 try:
@@ -260,7 +308,7 @@ class APIStats:
     def _get_library_stats(self) -> dict:
         """Get show/movie counts from the show cache, grouped by media type."""
         sc_path = Path(self.cache_cfg.get('show_cache_file', ''))
-        by_type = {"anime": 0, "tv": 0, "cartoons": 0, "movie": 0, "reality": 0, "talkshow": 0, "documentaries": 0}
+        by_type = {"anime": 0, "tv": 0, "cartoons": 0, "movie": 0, "reality": 0, "talkshow": 0, "documentaries": 0, "music": 0, "audiobooks": 0, "books": 0, "comics": 0, "manga": 0}
         top_shows = []
 
         if sc_path.exists():
