@@ -1,87 +1,111 @@
 # MyMediaManager
 
-A twin-engine automated media pipeline that organizes downloaded TV shows, anime, cartoons, reality TV, talk shows, documentaries, stand-up specials, and movies into a structured Plex/Jellyfin-compatible library.
+An automated quad-pipeline media engine that organizes TV shows, movies, music, audiobooks, eBooks, comics, and manga into a structured Plex/Jellyfin/Calibre-compatible library.
 
 ## Features
 
-- **16 automated services** processing files through a multi-stage pipeline
-- **10 output categories**: TV Shows, Cartoons, Anime, Reality TV, Talk Shows, Documentaries (Series & Movies), Stand-Up, Movies, Anime Movies
-- **Smart classification** using MAL, TVDB, TMDB, AniList, and other APIs
-- **Confidence scoring** with fuzzy matching and show cache
-- **Web control panel** with real-time monitoring, log viewer, and service management
-- **Review system** for low-confidence matches with manual override
-- **Duplicate detection** with size comparison and replace/delete options
-- **Dry run testing** to preview classification without moving files
+- **31 automated services** across 4 pipelines (Series, Movies, Music, Books)
+- **15 output categories**: TV Shows, Cartoons, Anime (Shows & Movies), Reality TV, Talk Shows, Documentaries (Series & Movies), Stand-Up, Movies, Music, Audiobooks, Books, Comics, Manga
+- **Smart classification** using MAL, TVDB, TMDB, AniList, MusicBrainz, AcoustID, Google Books, OpenLibrary, ComicVine
+- **Confidence scoring** with fuzzy matching, show cache, and per-type thresholds
+- **Web control panel** with real-time pipeline visualization, log viewer, and service management
+- **Review system** for low-confidence matches across all pipelines
+- **Duplicate detection** with size/quality comparison and replace/delete options
+- **Noise learner** that progressively cleans filenames from learned patterns
+- **Docker & bare metal** deployment with one-command install
 
 ## Pipeline Flow
 
 ```
-Drop_Shows / Drop_Movies
+Drop_Shows / Drop_Movies / Drop_Music / Drop_Books
      |
-  AutoMouse -----> File stability monitoring
+  AutoMouse -----> File stability monitoring & batch settling
      |
-  AutoHarbor ----> Archive extraction (RAR/ZIP/7z)
+  AutoHarbor ----> Archive extraction (RAR/ZIP/7z), CBR→CBZ conversion
      |
   AutoRouter ----> Extension routing + junk filtering
      |
-  StructPilot ---> Filename normalization
+  StructPilot / MusicPilot / BookPilot ---> Metadata extraction
      |
-  [Series] ContentClassifier --> Routes to anime/tv/cartoons/reality/talkshow/docs
+  ContentClassifier / AudioClassifier / BookClassifier ---> Smart routing
      |
-  Final Processors (7 services with API-driven metadata)
+  Final Processors (API-driven metadata enrichment)
      |
-  Organized Library (Plex/Jellyfin ready)
+  Organized Library (Plex/Jellyfin/Calibre ready)
 ```
 
 ## Quick Start
 
-### Requirements
-
-- Python 3.10+
-- API keys: TVDB, TMDB, MAL (minimum)
-- Optional: Trakt, OMDb, Fanart, IGDB
-
-### Installation
+### Docker (Recommended)
 
 ```bash
-# Clone
 git clone https://github.com/Sachinlearnsdev/MyMediaManager.git
-cd MyMediaManager
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure API keys
-cp config/config.template.json config/config.json
-# Create .env file with API keys:
-# MMM_TVDB_KEY=your_key
-# MMM_TMDB_KEY=your_key
-# MMM_MAL_KEY=your_key
-
-# Start the web panel
-python webpanel.py
-
-# Or start the full pipeline (Linux)
-chmod +x mymediamanager.sh
-./mymediamanager.sh
+cd MyMediaManager/docker
+docker compose up -d
 ```
 
-The web panel runs on port **8888** by default. First login: `admin` / `admin` (you'll be prompted to change it).
+Web panel at **http://localhost:8888** — login: `admin` / `admin`
+
+### Bare Metal (Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sachinlearnsdev/MyMediaManager/main/install.sh | sudo bash
+```
+
+### Manual
+
+```bash
+git clone https://github.com/Sachinlearnsdev/MyMediaManager.git
+cd MyMediaManager
+pip install -r requirements.txt
+cp config/config.template.json config/config.json
+python webpanel.py
+```
+
+### After Install
+
+1. Open the web panel and change your password
+2. Go to **Settings > Paths** and set your data & library roots (must be on the same drive)
+3. Go to **Settings > API Keys** and add your keys (TVDB + TMDB minimum for video)
+4. Go to **Dashboard** and click **Start All**
 
 ## Web Panel
 
-- **Dashboard**: Service control, pipeline flow visualization, review/duplicates management
-- **Logs**: Real-time log viewer with search, filters, and session history
-- **Settings**: Paths, API keys, priority configuration, tuning parameters
-- **Statistics**: Processing stats, cache browser, library overview
-- **Library**: Browse organized media with "new" detection
-- **Recovery**: Pipeline tools for stuck files and cache management
+- **Dashboard**: Horizontal swimlane pipeline visualization, collapsible lanes, file token tracking, review & duplicates management
+- **Logs**: Real-time log viewer with search, filters, pipeline grouping, and session history
+- **Settings**: Paths, API keys, priority chains, flow control quotas, confidence thresholds
+- **Statistics**: Per-processor stats, cache hit rates, Top Shows/Artists/Authors, library overview
+- **Library**: Browse all 15 media categories with search, "new" badges, and file details
+- **Recovery**: Flush stuck files, retry failed/review, nuclear reset, cache management
+- **Noise Learner**: View, approve, reject, and manually add filename cleaning patterns
+- **Guide**: Interactive setup checklist with API key status and drop folder mapping
+
+## API Keys
+
+| API | Used For | Required |
+|-----|----------|----------|
+| TVDB | TV shows, cartoons, reality, talk shows, docs | Yes (video) |
+| TMDB | Movies | Yes (video) |
+| MAL | Anime detection & metadata | Recommended |
+| MusicBrainz | Music metadata | Free (no key) |
+| AcoustID | Audio fingerprinting | Free |
+| Google Books | Book metadata | Free (no key) |
+| OpenLibrary | Book metadata fallback | Free (no key) |
+| ComicVine | Comic metadata | Free |
+| AniList | Anime episodes, manga | Free (no key) |
+| Trakt, OMDb, Fanart, IGDB | Additional metadata | Optional |
+
+Keys are stored in `.env` (gitignored). The web panel manages them automatically via **Settings > API Keys**.
 
 ## Configuration
 
-API keys are stored in `.env` (gitignored), not in config.json. The web panel manages both automatically.
-
 Edit `config/config.json` for paths, tuning parameters, and API priority ordering. See `config/config.template.json` for the full structure.
+
+## Requirements
+
+- Python 3.10+
+- System: `unrar`, `p7zip-full` (for archive extraction)
+- Docker: just Docker + Docker Compose
 
 ## License
 
