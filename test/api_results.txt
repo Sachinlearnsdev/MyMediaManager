@@ -1,0 +1,164 @@
+
+
+############################################################
+# HAIKYUU - SEASON 3
+############################################################
+
+============================================================
+JIKAN: Haikyuu Season 3
+============================================================
+
+[1] Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou
+    English: Haikyu!! 3rd Season
+Error: 'charmap' codec can't encode characters in position 12-16: character maps to <undefined>
+
+============================================================
+ANILIST: MAL ID 20583
+============================================================
+Error: 'NoneType' object has no attribute 'get'
+
+============================================================
+THETVDB: Haikyuu
+============================================================
+API returned 401: {"Error":"Not authorized"}
+
+============================================================
+TMDB: Haikyuu
+============================================================
+API returned 401
+
+
+############################################################
+# JUJUTSU KAISEN - SEASON 2
+############################################################
+
+============================================================
+JIKAN: Jujutsu Kaisen Season 2
+============================================================
+
+[1] Jujutsu Kaisen 2nd Season
+    English: Jujutsu Kaisen Season 2
+Error: 'charmap' codec can't encode characters in position 12-15: character maps to <undefined>
+
+============================================================
+ANILIST: MAL ID 40748
+============================================================
+Error: 'NoneType' object has no attribute 'get'
+
+============================================================
+THETVDB: Jujutsu Kaisen
+============================================================
+API returned 401: {"Error":"Not authorized"}
+
+============================================================
+TMDB: Jujutsu Kaisen
+============================================================
+API returned 401
+
+
+############################################################
+# NARUTO SHIPPUDEN - SEASON 1
+############################################################
+
+============================================================
+JIKAN: Naruto Shippuden Season 1
+============================================================
+
+[1] Naruto: Shippuuden
+    English: Naruto Shippuden
+Error: 'charmap' codec can't encode characters in position 13-15: character maps to <undefined>
+
+============================================================
+ANILIST: MAL ID 1735
+============================================================
+Error: 'NoneType' object has no attribute 'get'
+
+============================================================
+THETVDB: Naruto Shippuden
+============================================================
+API returned 401: {"Error":"Not authorized"}
+
+============================================================
+TMDB: Naruto Shippuden
+============================================================
+API returned 401
+
+
+############################################################
+# ONE PIECE - SEASON 1
+############################################################
+
+============================================================
+JIKAN: One Piece Season 1
+============================================================
+
+[1] One Piece Movie 01
+    English: One Piece: The Movie
+    Romaji: ONE PIECE
+    MAL ID: 459
+    Status: Finished Airing
+
+[2] One Piece
+    English: One Piece
+    Romaji: ONE PIECE
+    MAL ID: 21
+    Status: Currently Airing
+    Episodes (first 3):
+      Ep 1: I'm Luffy! The Man Who's Gonna Be King of the Pirates!
+               (Romaji: Ore wa Luffy! Kaizoku Ou ni Naru Otoko Da! )
+      Ep 2: Enter the Great Swordsman! Pirate Hunter Roronoa Zoro!
+               (Romaji: Daikengou Arawaru! Kaizokugari Roronoa Zoro )
+      Ep 3: Morgan versus Luffy! Who's the Mysterious Pretty Girl?
+               (Romaji: Morgan vs. Luffy! Nazo no Bishoujo wa Dare? )
+
+[3] One Piece Movie 14: Stampede
+    English: One Piece: Stampede
+Error: 'charmap' codec can't encode characters in position 12-15: character maps to <undefined>
+
+============================================================
+ANILIST: MAL ID 459
+============================================================
+Error: 'NoneType' object has no attribute 'get'
+
+============================================================
+THETVDB: One Piece
+============================================================
+API returned 401: {"Error":"Not authorized"}
+
+============================================================
+TMDB: One Piece
+============================================================
+API returned 401
+
+
+############################################################
+# ATTACK ON TITAN - SEASON 4
+############################################################
+
+============================================================
+JIKAN: Attack on Titan Season 4
+============================================================
+
+[1] Shingeki no Kyojin: The Final Season
+    English: Attack on Titan: Final Season
+Error: 'charmap' codec can't encode characters in position 12-16: character maps to <undefined>
+
+============================================================
+ANILIST: MAL ID 16498
+============================================================
+Error: 'NoneType' object has no attribute 'get'
+
+============================================================
+THETVDB: Attack on Titan
+============================================================
+API returned 401: {"Error":"Not authorized"}
+
+============================================================
+TMDB: Attack on Titan
+============================================================
+API returned 401
+
+
+============================================================
+API Query Test Complete
+============================================================

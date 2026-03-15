@@ -1,0 +1,247 @@
+
+======================================================================
+JIKAN: Haikyuu Season 3
+======================================================================
+
+Available matches from Jikan:
+
+  [1] MAL ID: 32935
+      Title: Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou
+      English: Haikyu!! 3rd Season
+      Type: TV | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: Greetings
+           (JP: Goaisatsu )
+        Ep 2: The Threat of the "Left"
+           (JP: "Hidari" no Kyoui )
+        Ep 3: GUESS-MONSTER
+           (JP: Guess Monster )
+
+  [2] MAL ID: 52995
+      Title: Arifureta Shokugyou de Sekai Saikyou Season 3
+      English: Arifureta: From Commonplace to World's Strongest Season 3
+      Type: TV | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: Haulias Assemble
+           (JP: Usamimi Sanjou )
+        Ep 2: Roar of Revolution
+           (JP: Hanki no Otakebi )
+        Ep 3: The Princess's Ordeal
+           (JP: Oujo no Junan )
+
+  [3] MAL ID: 35110
+      Title: Haikyuu!! Movie 3: Sainou to Sense
+      English: Haikyu!! The Movie: Talent and Sense
+      Type: Movie | Status: Finished Airing
+
+  [4] MAL ID: 62512
+      Title: Jidou Hanbaiki ni Umarekawatta Ore wa Meikyuu wo Samayou 3rd Season
+      English: Reborn as a Vending Machine, I Now Wander the Dungeon Season 3
+      Type: TV | Status: Not yet aired
+
+  [5] MAL ID: 61029
+      Title: Arifureta Shokugyou de Sekai Saikyou 3rd Season Picture Drama
+      English: Arifureta: From Commonplace to World's Strongest Season 3 Picture Drama
+      Type: ONA | Status: Finished Airing
+
+======================================================================
+ANILIST: MAL ID 20583
+======================================================================
+  Query error: [{'message': 'Unknown argument "limit" on field "streamingEpisodes" of type "Media".', 'status': 400, 'locations': [{'line': 9, 'column': 28}]}]
+
+======================================================================
+JIKAN: Jujutsu Kaisen Season 2
+======================================================================
+
+Available matches from Jikan:
+
+  [1] MAL ID: 51009
+      Title: Jujutsu Kaisen 2nd Season
+      English: Jujutsu Kaisen Season 2
+      Type: TV | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: Hidden Inventory
+           (JP: Kaigyoku )
+        Ep 2: Hidden Inventory 2
+           (JP: Kaigyoku: Ni )
+        Ep 3: Hidden Inventory 3
+           (JP: Kaigyoku: San )
+
+  [2] MAL ID: 56243
+      Title: Jujutsu Kaisen 2nd Season Recaps
+      English: Jujutsu Kaisen Season 2 Recaps
+      Type: TV Special | Status: Finished Airing
+
+  [3] MAL ID: 40748
+      Title: Jujutsu Kaisen
+      English: Jujutsu Kaisen
+      Type: TV | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: Ryomen Sukuna
+           (JP: Ryoumen Sukuna )
+        Ep 2: For Myself
+           (JP: Jibun no Tame ni )
+        Ep 3: Girl of Steel
+           (JP: Tekkotsu Musume )
+
+  [4] MAL ID: 48561
+      Title: Jujutsu Kaisen 0 Movie
+      English: Jujutsu Kaisen 0
+      Type: Movie | Status: Finished Airing
+
+  [5] MAL ID: 57658
+      Title: Jujutsu Kaisen: Shimetsu Kaiyuu - Zenpen
+      English: Jujutsu Kaisen: The Culling Game Part 1
+      Type: TV | Status: Currently Airing
+      Episodes (first 3):
+        Ep 1: Execution
+           (JP: Shikkou )
+        Ep 2: One More Time
+           (JP: Mou Ichido )
+        Ep 3: About the Culling Game
+           (JP: Shimetsu Kaiyuu ni Tsuite )
+
+======================================================================
+ANILIST: MAL ID 40748
+======================================================================
+  Query error: [{'message': 'Unknown argument "limit" on field "streamingEpisodes" of type "Media".', 'status': 400, 'locations': [{'line': 9, 'column': 28}]}]
+
+======================================================================
+JIKAN: One Piece Season 1
+======================================================================
+
+Available matches from Jikan:
+
+  [1] MAL ID: 459
+      Title: One Piece Movie 01
+      English: One Piece: The Movie
+      Type: Movie | Status: Finished Airing
+
+  [2] MAL ID: 21
+      Title: One Piece
+      English: One Piece
+      Type: TV | Status: Currently Airing
+      Episodes (first 3):
+        Ep 1: I'm Luffy! The Man Who's Gonna Be King of the Pirates!
+           (JP: Ore wa Luffy! Kaizoku Ou ni Naru Otoko Da! )
+        Ep 2: Enter the Great Swordsman! Pirate Hunter Roronoa Zoro!
+           (JP: Daikengou Arawaru! Kaizokugari Roronoa Zoro )
+        Ep 3: Morgan versus Luffy! Who's the Mysterious Pretty Girl?
+           (JP: Morgan vs. Luffy! Nazo no Bishoujo wa Dare? )
+
+  [3] MAL ID: 38234
+      Title: One Piece Movie 14: Stampede
+      English: One Piece: Stampede
+      Type: Movie | Status: Finished Airing
+
+  [4] MAL ID: 50410
+      Title: One Piece Film: Red
+      English: One Piece Film: Red
+      Type: Movie | Status: Finished Airing
+
+  [5] MAL ID: 9999
+      Title: One Piece 3D: Mugiwara Chase
+      English: One Piece 3D: Straw Hat Chase
+      Type: Movie | Status: Finished Airing
+
+======================================================================
+ANILIST: MAL ID 459
+======================================================================
+  Query error: [{'message': 'Unknown argument "limit" on field "streamingEpisodes" of type "Media".', 'status': 400, 'locations': [{'line': 9, 'column': 28}]}]
+
+======================================================================
+JIKAN: Attack on Titan Season 4
+======================================================================
+
+Available matches from Jikan:
+
+  [1] MAL ID: 40028
+      Title: Shingeki no Kyojin: The Final Season
+      English: Attack on Titan: Final Season
+      Type: TV | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: The Other Side of the Sea
+           (JP: Umi no Mukougawa )
+        Ep 2: Midnight Train
+           (JP: Yamiyo no Ressha )
+        Ep 3: The Door of Hope
+           (JP: Kibou no Tobira )
+
+  [2] MAL ID: 48583
+      Title: Shingeki no Kyojin: The Final Season Part 2
+      English: Attack on Titan: Final Season Part 2
+      Type: TV | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: Judgment
+           (JP: Danzai )
+        Ep 2: Sneak Attack
+           (JP: Damashiuchi )
+        Ep 3: Two Brothers
+           (JP: Ani to Otouto )
+
+  [3] MAL ID: 51535
+      Title: Shingeki no Kyojin: The Final Season - Kanketsu-hen
+      English: Attack on Titan: Final Season - The Final Chapters
+      Type: TV Special | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: The Final Chapters (Part One)
+           (JP: Kanketsu-hen (Zenpen) )
+        Ep 2: The Final Chapters (Part Two)
+           (JP: Kanketsu-hen (Kouhen) )
+
+  [4] MAL ID: 49627
+      Title: Shingeki no Kyojin: The Final Season Specials
+      English: Attack on Titan: Chibi Theater - Survey Corps, The Final!
+      Type: Special | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: Chimi Chara Theater 1
+        Ep 2: Chimi Chara Theater 2
+
+  [5] MAL ID: 25777
+      Title: Shingeki no Kyojin Season 2
+      English: Attack on Titan Season 2
+      Type: TV | Status: Finished Airing
+      Episodes (first 3):
+        Ep 1: Beast Titan
+           (JP: Kemono no Kyojin )
+        Ep 2: I'm Home
+           (JP: Tadaima )
+        Ep 3: Southwestward
+           (JP: Nansei e )
+
+======================================================================
+ANILIST: MAL ID 16498
+======================================================================
+  Query error: [{'message': 'Unknown argument "limit" on field "streamingEpisodes" of type "Media".', 'status': 400, 'locations': [{'line': 9, 'column': 28}]}]
+
+
+======================================================================
+SUMMARY: Best API Selection
+======================================================================
+
+KEY FINDINGS:
+
+1. **One Piece Issue**:
+   - Jikan returns "One Piece Movie 01" (MAL 459) on first search
+   - Solution: Filter by type != 'MOVIE' or get second result for TV series (MAL 21)
+
+2. **Haikyuu/AoT Season Titles**:
+   - Jikan provides correct English season-specific titles
+   - E.g., "Haikyu!! 3rd Season" or "Attack on Titan: Final Season"
+   - AniList should use these instead of trying to extract
+
+3. **Episode Titles**:
+   - Jikan's 'title' field has English episode names
+   - AniList streamingEpisodes sometimes empty
+   - Solution: Use Jikan as primary source, fallback to AniList
+
+4. **Season Subtitle Logic**:
+   - If season title contains generic phrase like "Season 2", "2nd Season", "3rd Season" -> strip it
+   - If it has actual meaning like "Final Season" or "To the Top" -> keep it
+   - For Haikyuu S3: Use full title "Karasuno High School vs Shiratorizawa Academy"
+
+5. **TVDB/TMDB**:
+   - Require API keys
+   - Better for live-action TV, less reliable for anime
+   - Skip for anime processing
+    
