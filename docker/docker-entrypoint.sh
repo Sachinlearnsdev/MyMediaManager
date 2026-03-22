@@ -2,6 +2,22 @@
 set -e
 
 # ──────────────────────────────────────────────
+# PUID/PGID — run as the user's UID/GID
+# Same pattern as Sonarr/Radarr/Jellyfin
+# ──────────────────────────────────────────────
+PUID=${PUID:-1000}
+PGID=${PGID:-1000}
+
+if ! getent group mmm > /dev/null 2>&1; then
+    groupadd -g "$PGID" mmm 2>/dev/null || groupadd mmm
+fi
+if ! getent passwd mmm > /dev/null 2>&1; then
+    useradd -u "$PUID" -g mmm -s /bin/bash -M mmm 2>/dev/null || useradd -g mmm -s /bin/bash -M mmm
+fi
+
+chown -R mmm:mmm /app /defaults
+
+# ──────────────────────────────────────────────
 # First-run: Generate default config
 # ──────────────────────────────────────────────
 if [ ! -f /app/config/config.json ]; then
@@ -48,6 +64,7 @@ SERVER_IP=${SERVER_IP:-localhost}
 
 echo "[mmm] ──────────────────────────────────────────"
 echo "[mmm]  MyMediaManager starting"
+echo "[mmm]  Running as UID=${PUID} GID=${PGID}"
 echo "[mmm]"
 echo "[mmm]  Web Panel:    http://${SERVER_IP}:8888"
 echo "[mmm]  Default login: admin / admin"
@@ -65,8 +82,5 @@ echo "[mmm]    Stop:     docker compose down"
 echo "[mmm]    Restart:  docker compose restart"
 echo "[mmm] ──────────────────────────────────────────"
 
-# ──────────────────────────────────────────────
-# Run as root (permissions handled by PUID/PGID
-# on output files, same as Sonarr/Radarr)
-# ──────────────────────────────────────────────
-exec "$@"
+# Drop from root to mmm (PUID:PGID) and run the app
+exec gosu mmm "$@"

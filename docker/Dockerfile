@@ -13,6 +13,7 @@ RUN sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.li
         unrar \
         p7zip-full \
         tini \
+        gosu \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -34,8 +35,7 @@ COPY docker/config.docker.json /defaults/config.docker.json
 COPY docker/docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Make app dirs writable by PUID user (default 1000)
-RUN chown -R 1000:1000 /app /defaults
+# Entrypoint handles PUID/PGID chown at runtime
 
 # ──────────────────────────────────────────────
 # Volumes
