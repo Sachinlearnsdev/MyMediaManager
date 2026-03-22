@@ -991,19 +991,6 @@ def create_app() -> Flask:
         if not target.is_dir():
             return jsonify({"error": "Not a directory"}), 400
 
-        # Path traversal guard: restrict browsing to configured roots
-        cfg_data = config_mgr.read()
-        allowed_roots = []
-        for root_val in cfg_data.get('paths', {}).get('roots', {}).values():
-            if root_val:
-                try:
-                    allowed_roots.append(str(Path(root_val).resolve()))
-                except Exception:
-                    pass
-        if allowed_roots:
-            target_str = str(target)
-            if not any(target_str == r or target_str.startswith(r + os.sep) for r in allowed_roots):
-                return jsonify({"error": "Access denied: path outside configured roots"}), 403
 
         dirs = []
         try:
