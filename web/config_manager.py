@@ -64,6 +64,10 @@ def read_env_keys() -> dict:
 def write_env_keys(api_keys: dict):
     """Write API keys to .env file. Preserves comments and unknown vars."""
     env_file = _env_path()
+    # Resolve symlink so atomic writes land in the real file's directory (e.g. /app/config/)
+    # not in the symlink's parent (e.g. /app/ which is ephemeral in Docker).
+    if env_file.is_symlink():
+        env_file = env_file.resolve()
     # Read existing lines to preserve comments and ordering
     existing_lines = []
     if env_file.exists():
