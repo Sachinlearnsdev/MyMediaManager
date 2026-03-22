@@ -2246,6 +2246,50 @@ select.field-input {
     border-color: var(--accent);
 }
 
+/* ── Output Groups (library folder categories) ── */
+.output-group {
+    margin-bottom: 0.75rem;
+}
+
+.output-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.45rem 0.75rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px 6px 0 0;
+    border-bottom: none;
+    letter-spacing: 0.01em;
+}
+
+.output-group-body {
+    border: 1px solid var(--border);
+    border-radius: 0 6px 6px 0;
+    border-top-right-radius: 6px;
+    padding: 1rem;
+    background: rgba(255,255,255,0.015);
+}
+
+/* ── Path Preview (live resolved path hint) ── */
+.path-preview {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.71rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    padding: 0.22rem 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.75;
+    min-height: 1.6rem;
+}
+
 /* ── Password input with eye toggle ── */
 .password-wrap {
     position: relative;

@@ -337,48 +337,39 @@
     <!-- ═══════════════════════════════════════════ -->
     <div x-show="tab === 'paths'" x-cloak>
 
-        <!-- Root Paths -->
+        <!-- Storage Layout: Roots + Library Output Folders (unified) -->
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Root Paths
-                    <span class="help-tip">?<span class="tip-text">Three root directories define where everything lives. Manager Root is for code/config (SSD). Data Root is for processing pipeline (fast drive). Library Root is your final media library (Jellyfin/Plex reads from here).</span></span>
+                <h3 class="card-title">Storage Layout
+                    <span class="help-tip">?<span class="tip-text">Three roots define where everything lives: Manager (code/config/SSD), Data (pipeline working dirs + drop folders), and Library (your organized media for Jellyfin/Plex). The library folders below are relative subfolders inside Library Root — rename them to match your existing structure. The full resolved path is shown as a preview.</span></span>
                 </h3>
             </div>
             <div class="info-banner">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
                 </svg>
-                <span><strong>Data Root</strong> and <strong>Library Root</strong> must be on the <strong>same drive</strong> so files move instantly (rename, not copy+delete). <strong>Manager Root</strong> stays on your SSD for code, cache, and logs. Sonarr/Radarr download folders should also live on the same drive as Data Root.</span>
+                <span><strong>Data Root</strong> and <strong>Library Root</strong> must be on the <strong>same drive</strong> so files move instantly (rename, not copy+delete). <strong>Manager Root</strong> stays on your SSD for code, cache, and logs.</span>
             </div>
-            <!-- Same-drive warning -->
             <div class="info-banner danger-banner" x-show="!sameDriveCheck()" x-cloak>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
-                <span><strong>Different drives detected!</strong> Data Root and Library Root must be on the same physical drive. Cross-drive moves are slow (copy+delete) and can stall the pipeline. Move them to the same drive.</span>
+                <span><strong>Different drives detected!</strong> Data Root and Library Root must be on the same physical drive. Cross-drive moves are slow (copy+delete) and can stall the pipeline.</span>
             </div>
 
-            <div class="grid-3">
+            <!-- Root Paths -->
+            <div class="grid-3" style="margin-bottom:1.75rem">
                 <div class="form-field">
                     <label class="field-label">Manager Root</label>
                     <div class="path-input-wrap">
                         <input type="text" class="field-input path-field" x-model="cfg.paths.roots.manager" readonly
                                @click="openBrowser('cfg.paths.roots.manager', cfg.paths.roots.manager)">
                         <button type="button" class="path-browse-btn" @click="openBrowser('cfg.paths.roots.manager', cfg.paths.roots.manager)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                            </svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                         </button>
                     </div>
-                    <span class="field-hint">Code, config, cache, logs — SSD recommended for speed</span>
-                    <div class="folder-structure">
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> bin/ <span class="folder-desc">- pipeline code</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> config/ <span class="folder-desc">- config.json</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> cache/ <span class="folder-desc">- show_cache, API cache</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> logs/ <span class="folder-desc">- service logs</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> web/ <span class="folder-desc">- control panel</span></div>
-                    </div>
+                    <span class="field-hint">Code, config, cache, logs — SSD recommended</span>
                 </div>
                 <div class="form-field">
                     <label class="field-label">Data Root</label>
@@ -386,22 +377,10 @@
                         <input type="text" class="field-input path-field" x-model="cfg.paths.roots.data" readonly
                                @click="openBrowser('cfg.paths.roots.data', cfg.paths.roots.data)">
                         <button type="button" class="path-browse-btn" @click="openBrowser('cfg.paths.roots.data', cfg.paths.roots.data)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                            </svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                         </button>
                     </div>
-                    <span class="field-hint">Pipeline working dirs + drop folders — must be same physical drive as Library Root</span>
-                    <div class="folder-structure">
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Shows/ <span class="folder-desc">- drop new shows here</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Movies/ <span class="folder-desc">- drop new movies here</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Music/ <span class="folder-desc">- drop music &amp; audiobooks here</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Drop_Books/ <span class="folder-desc">- drop books, comics &amp; manga here</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Trash/ <span class="folder-desc">- junk files removed by pipeline</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Review/ <span class="folder-desc">- low-confidence files for manual review</span></div>
-                        <div class="folder-item"><span class="folder-icon">&#128193;</span> Duplicates/ <span class="folder-desc">- duplicate files detected</span></div>
-                        <div class="folder-item" style="opacity:0.5"><span class="folder-icon">&#128193;</span> .Work/ <span class="folder-desc">- internal pipeline (hidden)</span></div>
-                    </div>
+                    <span class="field-hint">Drop folders &amp; pipeline — same drive as Library Root</span>
                 </div>
                 <div class="form-field">
                     <label class="field-label">Library Root</label>
@@ -409,106 +388,143 @@
                         <input type="text" class="field-input path-field" x-model="cfg.paths.roots.library" readonly
                                @click="openBrowser('cfg.paths.roots.library', cfg.paths.roots.library)">
                         <button type="button" class="path-browse-btn" @click="openBrowser('cfg.paths.roots.library', cfg.paths.roots.library)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                            </svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                         </button>
                     </div>
-                    <span class="field-hint">Organized media for Jellyfin/Plex — must be same physical drive as Data Root</span>
-                    <div class="folder-structure">
-                        <div class="folder-item" style="font-weight:600;color:#4fc3f7"><span class="folder-icon">&#128193;</span> Shows &amp; Movies/</div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> TV Shows/ <span class="folder-desc">- TV series</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Movies/ <span class="folder-desc">- movies</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Anime/Shows/ <span class="folder-desc">- anime series</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Anime/Movies/ <span class="folder-desc">- anime films</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Cartoons/ <span class="folder-desc">- cartoon shows</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Reality TV/ <span class="folder-desc">- reality shows</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Talk Shows/ <span class="folder-desc">- talk shows</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Documentaries/Series/ <span class="folder-desc">- doc series</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Documentaries/Movies/ <span class="folder-desc">- doc films</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Stand-Up/ <span class="folder-desc">- comedy specials</span></div>
-                        <div class="folder-item" style="font-weight:600;color:#22d3ee;margin-top:0.3rem"><span class="folder-icon">&#128193;</span> Audio &amp; Music/</div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Music/ <span class="folder-desc">- music tracks</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Audiobooks/ <span class="folder-desc">- audiobook chapters</span></div>
-                        <div class="folder-item" style="font-weight:600;color:#a78bfa;margin-top:0.3rem"><span class="folder-icon">&#128193;</span> Books &amp; Comics/</div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Books/ <span class="folder-desc">- fiction, non-fiction, technical</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Comics/ <span class="folder-desc">- comic issues by publisher</span></div>
-                        <div class="folder-item" style="padding-left:1.4rem"><span class="folder-icon">&#128193;</span> Manga/ <span class="folder-desc">- manga volumes by series</span></div>
+                    <span class="field-hint">Organized media for Jellyfin/Plex — same drive as Data Root</span>
+                </div>
+            </div>
+
+            <!-- Library Output Folders (grouped) -->
+            <h4 class="section-subtitle">Library Folders
+                <span class="help-tip">?<span class="tip-text">Subfolders inside Library Root. Edit folder names to match your existing structure. Full resolved path is shown as a preview below each field.</span></span>
+            </h4>
+
+            <!-- Shows & Movies -->
+            <div class="output-group">
+                <div class="output-group-header" style="color:#4fc3f7">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg>
+                    Shows &amp; Movies
+                </div>
+                <div class="output-group-body">
+                    <div class="grid-3">
+                        <div class="form-field">
+                            <label class="field-label">TV Shows</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.tv">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.tv)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Movies</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.movies">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.movies)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Anime Shows</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.anime_shows">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.anime_shows)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Anime Movies</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.anime_movies">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.anime_movies)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Cartoons</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.cartoons">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.cartoons)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Reality TV</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.reality">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.reality)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Talk Shows</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.talkshow">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.talkshow)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Docs Series</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_series">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.documentaries_series)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Docs Movies</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_movies">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.documentaries_movies)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Stand-Up</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.standup">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.standup)"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Library Output Folders -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Library Output Folders</h3>
+            <!-- Audio & Music -->
+            <div class="output-group">
+                <div class="output-group-header" style="color:#22d3ee">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    Audio &amp; Music
+                </div>
+                <div class="output-group-body">
+                    <div class="grid-3">
+                        <div class="form-field">
+                            <label class="field-label">Music</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.music">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.music)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Audiobooks</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.audiobooks">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.audiobooks)"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <p class="settings-desc">Relative paths inside Library Root where processed media is placed.</p>
-            <div class="grid-3">
-                <div class="form-field">
-                    <label class="field-label">TV Shows</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.tv">
+
+            <!-- Books & Comics -->
+            <div class="output-group">
+                <div class="output-group-header" style="color:#a78bfa">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    Books &amp; Comics
                 </div>
-                <div class="form-field">
-                    <label class="field-label">Movies</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.movies">
+                <div class="output-group-body">
+                    <div class="grid-3">
+                        <div class="form-field">
+                            <label class="field-label">Books</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.books">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.books)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Comics</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.comics">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.comics)"></div>
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label">Manga</label>
+                            <input type="text" class="field-input" x-model="cfg.paths.output.manga">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.manga)"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-field">
-                    <label class="field-label">Anime Shows</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.anime_shows">
+            </div>
+
+            <!-- Trash -->
+            <div class="output-group">
+                <div class="output-group-header" style="color:var(--text-muted)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                    Trash
                 </div>
-                <div class="form-field">
-                    <label class="field-label">Anime Movies</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.anime_movies">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Cartoons</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.cartoons">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Reality TV</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.reality">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Talk Shows</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.talkshow">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Docs Series</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_series">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Docs Movies</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_movies">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Stand-Up</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.standup">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Music</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.music">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Audiobooks</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.audiobooks">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Books</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.books">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Comics</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.comics">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Manga</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.output.manga">
-                </div>
-                <div class="form-field">
-                    <label class="field-label">Trash</label>
-                    <input type="text" class="field-input" x-model="cfg.paths.trash_root">
+                <div class="output-group-body">
+                    <div class="grid-3">
+                        <div class="form-field">
+                            <label class="field-label">Trash Folder <span class="field-hint" style="display:inline;font-style:normal">(relative to Data Root)</span></label>
+                            <input type="text" class="field-input" x-model="cfg.paths.trash_root">
+                            <div class="path-preview" x-text="joinPath(cfg.paths.roots.data, cfg.paths.trash_root)"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -516,25 +532,31 @@
         <!-- Drop Folders -->
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Drop Folders</h3>
+                <h3 class="card-title">Drop Folders
+                    <span class="help-tip">?<span class="tip-text">Folders where you paste or download new media. AutoMouse watches these and moves files into the pipeline automatically. All paths are relative to Data Root.</span></span>
+                </h3>
             </div>
-            <p class="settings-desc">Relative paths inside Data Root where new media is dropped for processing.</p>
+            <p class="settings-desc">Where you drop new media files. Relative to Data Root.</p>
             <div class="grid-2">
                 <div class="form-field">
                     <label class="field-label">Shows Drop</label>
                     <input type="text" class="field-input" x-model="cfg.paths.series_pipeline.input_drop">
+                    <div class="path-preview" x-text="joinPath(cfg.paths.roots.data, cfg.paths.series_pipeline.input_drop)"></div>
                 </div>
                 <div class="form-field">
                     <label class="field-label">Movies Drop</label>
                     <input type="text" class="field-input" x-model="cfg.paths.movie_pipeline.input_drop">
+                    <div class="path-preview" x-text="joinPath(cfg.paths.roots.data, cfg.paths.movie_pipeline.input_drop)"></div>
                 </div>
                 <div class="form-field">
                     <label class="field-label">Music Drop</label>
                     <input type="text" class="field-input" x-model="cfg.paths.music_pipeline.input_drop">
+                    <div class="path-preview" x-text="joinPath(cfg.paths.roots.data, cfg.paths.music_pipeline.input_drop)"></div>
                 </div>
                 <div class="form-field">
                     <label class="field-label">Books Drop</label>
                     <input type="text" class="field-input" x-model="cfg.paths.books_pipeline.input_drop">
+                    <div class="path-preview" x-text="joinPath(cfg.paths.roots.data, cfg.paths.books_pipeline.input_drop)"></div>
                 </div>
             </div>
         </div>
@@ -1712,6 +1734,12 @@ function settingsApp() {
             }
             if (data.startsWith('/') && lib.startsWith('/')) return true;
             return true;
+        },
+
+        joinPath(base, rel) {
+            if (!base || !rel) return '';
+            const sep = base.includes('\\') ? '\\' : '/';
+            return base.replace(/[\/\\]+$/, '') + sep + rel;
         },
 
         async removeApiKey(name) {
