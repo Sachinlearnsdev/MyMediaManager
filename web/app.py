@@ -348,8 +348,12 @@ def create_app() -> Flask:
         try:
             new_cfg = request.get_json()
             config_mgr.write(new_cfg)
-            # Try to create infrastructure directories after saving paths
+            # Create/fix infrastructure directories
             infra_errors = pm.init_infrastructure()
+            # Restart any running pipeline services so they pick up the new config
+            running = [s['id'] for s in pm.get_status() if s['status'] == 'running']
+            for svc_id in running:
+                pm.restart(svc_id)
             if infra_errors:
                 return jsonify({"status": "saved", "warnings": infra_errors})
             return jsonify({"status": "saved"})
