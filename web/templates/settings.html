@@ -397,7 +397,7 @@
 
             <!-- Library Output Folders (grouped) -->
             <h4 class="section-subtitle">Library Folders
-                <span class="help-tip">?<span class="tip-text">Subfolders inside Library Root. Edit folder names to match your existing structure. Full resolved path is shown as a preview below each field.</span></span>
+                <span class="help-tip">?<span class="tip-text">Subfolders inside Library Root. Each folder level is a separate editable segment — rename any level freely. Hit + to add a deeper sub-level, × to remove a level. The full resolved path is shown as a preview.</span></span>
             </h4>
 
             <!-- Shows & Movies -->
@@ -410,52 +410,192 @@
                     <div class="grid-3">
                         <div class="form-field">
                             <label class="field-label">TV Shows</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.tv">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.tv)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.tv', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.tv', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.tv).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.tv', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.tv')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.tv)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Movies</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.movies">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.movies)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.movies', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.movies', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.movies).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.movies', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.movies')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.movies)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Anime Shows</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.anime_shows">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.anime_shows)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.anime_shows', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.anime_shows', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.anime_shows).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.anime_shows', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.anime_shows')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.anime_shows)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Anime Movies</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.anime_movies">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.anime_movies)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.anime_movies', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.anime_movies', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.anime_movies).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.anime_movies', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.anime_movies')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.anime_movies)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Cartoons</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.cartoons">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.cartoons)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.cartoons', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.cartoons', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.cartoons).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.cartoons', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.cartoons')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.cartoons)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Reality TV</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.reality">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.reality)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.reality', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.reality', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.reality).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.reality', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.reality')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.reality)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Talk Shows</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.talkshow">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.talkshow)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.talkshow', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.talkshow', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.talkshow).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.talkshow', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.talkshow')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.talkshow)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Docs Series</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_series">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.documentaries_series)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.documentaries_series', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.documentaries_series', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.documentaries_series).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.documentaries_series', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.documentaries_series')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.documentaries_series)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Docs Movies</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.documentaries_movies">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.documentaries_movies)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.documentaries_movies', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.documentaries_movies', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.documentaries_movies).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.documentaries_movies', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.documentaries_movies')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.documentaries_movies)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Stand-Up</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.standup">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.standup)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.standup', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.standup', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.standup).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.standup', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.standup')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.standup)"></div>
                         </div>
                     </div>
@@ -472,12 +612,40 @@
                     <div class="grid-3">
                         <div class="form-field">
                             <label class="field-label">Music</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.music">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.music)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.music', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.music', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.music).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.music', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.music')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.music)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Audiobooks</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.audiobooks">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.audiobooks)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.audiobooks', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.audiobooks', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.audiobooks).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.audiobooks', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.audiobooks')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.audiobooks)"></div>
                         </div>
                     </div>
@@ -494,17 +662,59 @@
                     <div class="grid-3">
                         <div class="form-field">
                             <label class="field-label">Books</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.books">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.books)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.books', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.books', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.books).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.books', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.books')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.books)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Comics</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.comics">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.comics)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.comics', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.comics', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.comics).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.comics', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.comics')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.comics)"></div>
                         </div>
                         <div class="form-field">
                             <label class="field-label">Manga</label>
-                            <input type="text" class="field-input" x-model="cfg.paths.output.manga">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.output.manga)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.output.manga', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.output.manga', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.output.manga).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.output.manga', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.output.manga')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.library, cfg.paths.output.manga)"></div>
                         </div>
                     </div>
@@ -521,7 +731,21 @@
                     <div class="grid-3">
                         <div class="form-field">
                             <label class="field-label">Trash Folder <span class="field-hint" style="display:inline;font-style:normal">(relative to Data Root)</span></label>
-                            <input type="text" class="field-input" x-model="cfg.paths.trash_root">
+                            <div class="path-builder">
+                                <template x-for="(seg, idx) in pathSegs(cfg.paths.trash_root)" :key="idx">
+                                    <span class="path-seg-wrap">
+                                        <span x-show="idx > 0" class="path-sep">/</span>
+                                        <input class="path-seg-input" :value="seg"
+                                               @blur="setPathSeg('cfg.paths.trash_root', idx, $event.target.value)"
+                                               @keydown.enter.prevent="setPathSeg('cfg.paths.trash_root', idx, $event.target.value)">
+                                        <button type="button" class="seg-btn-remove" title="Remove level"
+                                                x-show="pathSegs(cfg.paths.trash_root).length > 1"
+                                                @click.prevent="removePathSeg('cfg.paths.trash_root', idx)">×</button>
+                                    </span>
+                                </template>
+                                <button type="button" class="seg-btn-add" title="Add a deeper folder level"
+                                        @click.prevent="addPathSeg('cfg.paths.trash_root')">+</button>
+                            </div>
                             <div class="path-preview" x-text="joinPath(cfg.paths.roots.data, cfg.paths.trash_root)"></div>
                         </div>
                     </div>
@@ -1740,6 +1964,47 @@ function settingsApp() {
             if (!base || !rel) return '';
             const sep = base.includes('\\') ? '\\' : '/';
             return base.replace(/[\/\\]+$/, '') + sep + rel;
+        },
+
+        // ── Path segment builder helpers ──
+        pathSegs(val) {
+            if (!val) return [''];
+            const segs = val.split('/').filter(s => s !== '');
+            return segs.length > 0 ? segs : [''];
+        },
+
+        _getField(fieldPath) {
+            const parts = fieldPath.split('.');
+            let obj = this;
+            for (const p of parts) obj = (obj != null ? obj[p] : undefined);
+            return obj || '';
+        },
+
+        _setField(fieldPath, value) {
+            const parts = fieldPath.split('.');
+            let obj = this;
+            for (let i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
+            obj[parts[parts.length - 1]] = value;
+        },
+
+        setPathSeg(fieldPath, idx, value) {
+            const segs = (this._getField(fieldPath) || '').split('/').filter(s => s !== '');
+            while (segs.length <= idx) segs.push('');
+            segs[idx] = value;
+            const cleaned = segs.filter(s => s !== '');
+            this._setField(fieldPath, cleaned.length > 0 ? cleaned.join('/') : segs.join('/'));
+        },
+
+        addPathSeg(fieldPath) {
+            const curr = this._getField(fieldPath);
+            this._setField(fieldPath, curr ? curr + '/New Folder' : 'New Folder');
+        },
+
+        removePathSeg(fieldPath, idx) {
+            const segs = (this._getField(fieldPath) || '').split('/').filter(s => s !== '');
+            if (segs.length <= 1) return;
+            segs.splice(idx, 1);
+            this._setField(fieldPath, segs.join('/'));
         },
 
         async removeApiKey(name) {
