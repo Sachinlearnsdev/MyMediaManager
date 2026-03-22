@@ -29,6 +29,11 @@ services:
       - ./cache:/app/cache
       - ./logs:/app/logs
 
+      # ── Live code (no rebuild needed for code/template changes) ──
+      - ../bin:/app/bin
+      - ../web:/app/web
+      - ../webpanel.py:/app/webpanel.py
+
       # ── Mount your storage drive(s) ──
       # Mount the drive where you want data + library to live.
       # Then set the exact paths via Settings > Paths in the web panel.
