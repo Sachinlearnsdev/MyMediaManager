@@ -221,25 +221,8 @@ class ProcessManager:
             data_root / ".Work" / "Books" / "Staged" / "Books",
             data_root / ".Work" / "Books" / "Staged" / "Comics",
             data_root / ".Work" / "Books" / "Staged" / "Manga",
-            # Libraries (library root -- same drive as data root)
-            # Shows & Movies
-            library_root / "Shows & Movies" / "TV Shows",
-            library_root / "Shows & Movies" / "Movies",
-            library_root / "Shows & Movies" / "Anime" / "Shows",
-            library_root / "Shows & Movies" / "Anime" / "Movies",
-            library_root / "Shows & Movies" / "Cartoons",
-            library_root / "Shows & Movies" / "Reality TV",
-            library_root / "Shows & Movies" / "Talk Shows",
-            library_root / "Shows & Movies" / "Documentaries" / "Series",
-            library_root / "Shows & Movies" / "Documentaries" / "Movies",
-            library_root / "Shows & Movies" / "Stand-Up",
-            # Audio & Music
-            library_root / "Audio & Music" / "Music",
-            library_root / "Audio & Music" / "Audiobooks",
-            # Books & Comics
-            library_root / "Books & Comics" / "Books",
-            library_root / "Books & Comics" / "Comics",
-            library_root / "Books & Comics" / "Manga",
+            # Libraries — use config output paths so folder names match what processors write to
+            *[library_root / v for v in cfg.get('paths', {}).get('output', {}).values() if v],
             # System
             ROOT / "logs",
             ROOT / "cache" / "tv",
