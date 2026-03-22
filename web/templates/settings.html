@@ -204,6 +204,26 @@
                     <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_movie" min="0" max="100">
                     <span class="field-hint">Default: 75</span>
                 </div>
+                <div class="form-field">
+                    <label class="field-label">Music</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_music" min="0" max="100">
+                    <span class="field-hint">Default: 60</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Audiobooks</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_audiobook" min="0" max="100">
+                    <span class="field-hint">Default: 60</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Books</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_book" min="0" max="100">
+                    <span class="field-hint">Default: 60</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Comics</label>
+                    <input type="number" class="field-input" x-model.number="cfg.tuning.confidence_comic" min="0" max="100">
+                    <span class="field-hint">Default: 60</span>
+                </div>
             </div>
         </div>
 
@@ -979,6 +999,69 @@
             </div>
         </div>
 
+        <!-- Music / Books / Comics / Manga API Priority -->
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">Music, Books &amp; Comics</h3></div>
+            <div class="grid-3">
+                <div class="form-field">
+                    <label class="field-label">Music Search</label>
+                    <template x-for="(api, i) in cfg.api_config.music.search" :key="'mus_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.music.search[i]" x-html="apiOptionsHtml('music.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.music.search.splice(i,1)" x-show="cfg.api_config.music.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <span class="field-hint">Default: MusicBrainz</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Books Search</label>
+                    <template x-for="(api, i) in cfg.api_config.books.search" :key="'bk_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.books.search[i]" x-html="apiOptionsHtml('books.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.books.search.splice(i,1)" x-show="cfg.api_config.books.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.books.search.push(apiOptionsFor('books.search').find(o => !cfg.api_config.books.search.includes(o.value))?.value || 'googlebooks')"
+                        x-show="cfg.api_config.books.search.length < apiOptionsFor('books.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: OpenLibrary → Google Books</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Comics Search</label>
+                    <template x-for="(api, i) in cfg.api_config.comics.search" :key="'com_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.comics.search[i]" x-html="apiOptionsHtml('comics.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.comics.search.splice(i,1)" x-show="cfg.api_config.comics.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <span class="field-hint">Default: ComicVine</span>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Manga Search</label>
+                    <template x-for="(api, i) in cfg.api_config.manga_books.search" :key="'man_s_'+i">
+                        <div class="priority-row">
+                            <span class="priority-num" x-text="(i+1)+'.'"></span>
+                            <select class="field-input" x-model="cfg.api_config.manga_books.search[i]" x-html="apiOptionsHtml('manga_books.search')"></select>
+                            <button type="button" class="btn-icon btn-icon-danger" @click="cfg.api_config.manga_books.search.splice(i,1)" x-show="cfg.api_config.manga_books.search.length > 1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn btn-outline btn-xs" @click="cfg.api_config.manga_books.search.push(apiOptionsFor('manga_books.search').find(o => !cfg.api_config.manga_books.search.includes(o.value))?.value || 'mal')"
+                        x-show="cfg.api_config.manga_books.search.length < apiOptionsFor('manga_books.search').length">+ Add Fallback</button>
+                    <span class="field-hint">Default: AniList → MAL</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab Save Bar -->
         <div class="tab-save-bar">
             <button class="btn btn-outline btn-sm" @click="resetConfig()" x-show="hasChanges">Discard</button>
@@ -1309,6 +1392,11 @@ function settingsApp() {
             'talkshow.episode_titles':['tvdb', 'tmdb', 'tvmaze'],
             'documentaries.search':  ['tvdb', 'tmdb', 'trakt', 'tvmaze'],
             'documentaries.episode_titles':['tvdb', 'tmdb', 'tvmaze'],
+            'music.search':          ['musicbrainz'],
+            'music.fingerprint':     ['acoustid'],
+            'books.search':          ['openlibrary', 'googlebooks'],
+            'comics.search':         ['comicvine'],
+            'manga_books.search':    ['anilist', 'mal'],
         },
 
         // API Keys

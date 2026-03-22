@@ -116,13 +116,47 @@ def write_env_keys(api_keys: dict):
         raise
 
 
+# Defaults applied to any config missing these keys (e.g. configs from older versions)
+_OUTPUT_DEFAULTS = {
+    'tv': 'TV Shows', 'movies': 'Movies', 'anime_shows': 'Anime/Shows',
+    'anime_movies': 'Anime/Movies', 'cartoons': 'Cartoons', 'reality': 'Reality TV',
+    'talkshow': 'Talk Shows', 'documentaries_series': 'Documentaries/Series',
+    'documentaries_movies': 'Documentaries/Movies', 'standup': 'Stand-Up',
+    'music': 'Audio & Music/Music', 'audiobooks': 'Audio & Music/Audiobooks',
+    'books': 'Books & Comics/Books', 'comics': 'Books & Comics/Comics',
+    'manga': 'Books & Comics/Manga',
+}
+_TUNING_DEFAULTS = {
+    'confidence_classifier': 40, 'confidence_tv': 60, 'confidence_cartoon': 60,
+    'confidence_movie': 75, 'confidence_music': 60, 'confidence_audiobook': 60,
+    'confidence_book': 60, 'confidence_comic': 60,
+}
+_API_CONFIG_DEFAULTS = {
+    'music':      {'search': ['musicbrainz'], 'fingerprint': ['acoustid']},
+    'books':      {'search': ['openlibrary', 'googlebooks']},
+    'comics':     {'search': ['comicvine']},
+    'manga_books':{'search': ['anilist', 'mal']},
+}
+
+
 class ConfigManager:
     def __init__(self, config_path: Path):
         self.config_path = Path(config_path)
 
     def read(self) -> dict:
-        """Read config.json and overlay API keys from .env."""
+        """Read config.json and overlay API keys from .env. Fills in missing defaults."""
         cfg = json.loads(self.config_path.read_text(encoding='utf-8'))
+        # Fill in any missing output paths, tuning, and api_config defaults
+        output = cfg.setdefault('paths', {}).setdefault('output', {})
+        for k, v in _OUTPUT_DEFAULTS.items():
+            output.setdefault(k, v)
+        tuning = cfg.setdefault('tuning', {})
+        for k, v in _TUNING_DEFAULTS.items():
+            tuning.setdefault(k, v)
+        api_config = cfg.setdefault('api_config', {})
+        for k, v in _API_CONFIG_DEFAULTS.items():
+            api_config.setdefault(k, v)
+        # Overlay API keys from .env
         env_keys = read_env_keys()
         if env_keys:
             existing = cfg.get('api_keys', {})
