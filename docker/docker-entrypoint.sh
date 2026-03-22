@@ -57,6 +57,22 @@ mkdir -p /app/cache/music /app/cache/audiobooks /app/cache/books /app/cache/comi
 mkdir -p /app/logs
 
 # ──────────────────────────────────────────────
+# Auto-fix ownership of configured storage paths
+# Reads data/library roots from config.json and
+# chowns them so Samba access always works
+# ──────────────────────────────────────────────
+if [ -f /app/config/config.json ]; then
+    DATA_ROOT=$(python3 -c "import json,sys; c=json.load(open('/app/config/config.json')); print(c.get('paths',{}).get('roots',{}).get('data',''))" 2>/dev/null || true)
+    LIBRARY_ROOT=$(python3 -c "import json,sys; c=json.load(open('/app/config/config.json')); print(c.get('paths',{}).get('roots',{}).get('library',''))" 2>/dev/null || true)
+    for DIR in "$DATA_ROOT" "$LIBRARY_ROOT"; do
+        if [ -n "$DIR" ] && [ -d "$DIR" ]; then
+            echo "[mmm] Fixing ownership of $DIR → UID=${PUID} GID=${PGID}"
+            chown -R mmm:mmm "$DIR"
+        fi
+    done
+fi
+
+# ──────────────────────────────────────────────
 # Startup banner
 # ──────────────────────────────────────────────
 SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
