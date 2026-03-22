@@ -131,6 +131,22 @@ _TUNING_DEFAULTS = {
     'confidence_movie': 75, 'confidence_music': 60, 'confidence_audiobook': 60,
     'confidence_book': 60, 'confidence_comic': 60,
 }
+_PIPELINE_DEFAULTS = {
+    'music_pipeline': {
+        'input_drop': 'Drop_Music', 'system_drop': '.Work/Music/Intake',
+        'system_home': '.Work/Music', 'processing': '.Work/Music/Processing',
+        'failed': '.Work/Music/Failed', 'review': 'Review/Music',
+        'duplicates': 'Duplicates/Music',
+        'staged': {'music': '.Work/Music/Staged/Music', 'audiobooks': '.Work/Music/Staged/Audiobooks'},
+    },
+    'books_pipeline': {
+        'input_drop': 'Drop_Books', 'system_drop': '.Work/Books/Intake',
+        'system_home': '.Work/Books', 'processing': '.Work/Books/Processing',
+        'failed': '.Work/Books/Failed', 'review': 'Review/Books',
+        'duplicates': 'Duplicates/Books',
+        'staged': {'books': '.Work/Books/Staged/Books', 'comics': '.Work/Books/Staged/Comics', 'manga': '.Work/Books/Staged/Manga'},
+    },
+}
 _API_CONFIG_DEFAULTS = {
     'music':      {'search': ['musicbrainz'], 'fingerprint': ['acoustid']},
     'books':      {'search': ['openlibrary', 'googlebooks']},
@@ -146,10 +162,17 @@ class ConfigManager:
     def read(self) -> dict:
         """Read config.json and overlay API keys from .env. Fills in missing defaults."""
         cfg = json.loads(self.config_path.read_text(encoding='utf-8'))
-        # Fill in any missing output paths, tuning, and api_config defaults
-        output = cfg.setdefault('paths', {}).setdefault('output', {})
+        # Fill in any missing keys (e.g. configs created before music/books pipelines were added)
+        paths = cfg.setdefault('paths', {})
+        output = paths.setdefault('output', {})
         for k, v in _OUTPUT_DEFAULTS.items():
             output.setdefault(k, v)
+        for pipeline_key, pipeline_defaults in _PIPELINE_DEFAULTS.items():
+            if pipeline_key not in paths:
+                paths[pipeline_key] = pipeline_defaults
+            else:
+                for k, v in pipeline_defaults.items():
+                    paths[pipeline_key].setdefault(k, v)
         tuning = cfg.setdefault('tuning', {})
         for k, v in _TUNING_DEFAULTS.items():
             tuning.setdefault(k, v)

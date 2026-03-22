@@ -148,6 +148,31 @@ def load_config():
         except Exception as e:
             print(f"[WARNING] Could not load secrets: {e}")
 
+    # Fill in missing pipeline sections (for configs created before music/books were added)
+    _PIPELINE_DEFAULTS = {
+        'music_pipeline': {
+            'input_drop': 'Drop_Music', 'system_drop': '.Work/Music/Intake',
+            'system_home': '.Work/Music', 'processing': '.Work/Music/Processing',
+            'failed': '.Work/Music/Failed', 'review': 'Review/Music',
+            'duplicates': 'Duplicates/Music',
+            'staged': {'music': '.Work/Music/Staged/Music', 'audiobooks': '.Work/Music/Staged/Audiobooks'},
+        },
+        'books_pipeline': {
+            'input_drop': 'Drop_Books', 'system_drop': '.Work/Books/Intake',
+            'system_home': '.Work/Books', 'processing': '.Work/Books/Processing',
+            'failed': '.Work/Books/Failed', 'review': 'Review/Books',
+            'duplicates': 'Duplicates/Books',
+            'staged': {'books': '.Work/Books/Staged/Books', 'comics': '.Work/Books/Staged/Comics', 'manga': '.Work/Books/Staged/Manga'},
+        },
+    }
+    paths = raw_config.setdefault('paths', {})
+    for pipeline_key, pipeline_defaults in _PIPELINE_DEFAULTS.items():
+        if pipeline_key not in paths:
+            paths[pipeline_key] = pipeline_defaults
+        else:
+            for k, v in pipeline_defaults.items():
+                paths[pipeline_key].setdefault(k, v)
+
     # Overlay API keys from .env
     env_keys = _load_env_keys()
     if env_keys:
