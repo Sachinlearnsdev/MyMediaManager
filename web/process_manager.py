@@ -257,6 +257,29 @@ class ProcessManager:
                 d.mkdir(parents=True, exist_ok=True)
             except PermissionError:
                 errors.append(f"Cannot create {d}")
+
+        # Fix ownership of data/library roots so Samba access always works.
+        # Uses PUID/PGID env vars set in docker-compose (same as entrypoint).
+        puid = os.environ.get('PUID')
+        pgid = os.environ.get('PGID')
+        if puid and pgid:
+            try:
+                uid, gid = int(puid), int(pgid)
+                for root in (data_root, library_root):
+                    if root.exists():
+                        for dirpath, dirnames, filenames in os.walk(root):
+                            try:
+                                os.lchown(dirpath, uid, gid)
+                            except OSError:
+                                pass
+                            for name in filenames + dirnames:
+                                try:
+                                    os.lchown(os.path.join(dirpath, name), uid, gid)
+                                except OSError:
+                                    pass
+            except (ValueError, OSError):
+                pass
+
         if errors:
             errors.append("Fix permissions on your server: sudo chown -R $(id -u):$(id -g) <path>")
         return errors
