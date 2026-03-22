@@ -118,13 +118,21 @@ def write_env_keys(api_keys: dict):
 
 # Defaults applied to any config missing these keys (e.g. configs from older versions)
 _OUTPUT_DEFAULTS = {
-    'tv': 'TV Shows', 'movies': 'Movies', 'anime_shows': 'Anime/Shows',
-    'anime_movies': 'Anime/Movies', 'cartoons': 'Cartoons', 'reality': 'Reality TV',
-    'talkshow': 'Talk Shows', 'documentaries_series': 'Documentaries/Series',
-    'documentaries_movies': 'Documentaries/Movies', 'standup': 'Stand-Up',
-    'music': 'Audio & Music/Music', 'audiobooks': 'Audio & Music/Audiobooks',
-    'books': 'Books & Comics/Books', 'comics': 'Books & Comics/Comics',
-    'manga': 'Books & Comics/Manga',
+    'tv':                   'Shows & Movies/TV Shows',
+    'movies':               'Shows & Movies/Movies',
+    'anime_shows':          'Shows & Movies/Anime/Shows',
+    'anime_movies':         'Shows & Movies/Anime/Movies',
+    'cartoons':             'Shows & Movies/Cartoons',
+    'reality':              'Shows & Movies/Reality TV',
+    'talkshow':             'Shows & Movies/Talk Shows',
+    'documentaries_series': 'Shows & Movies/Documentaries/Series',
+    'documentaries_movies': 'Shows & Movies/Documentaries/Movies',
+    'standup':              'Shows & Movies/Stand-Up',
+    'music':                'Audio & Music/Music',
+    'audiobooks':           'Audio & Music/Audiobooks',
+    'books':                'Books & Comics/Books',
+    'comics':               'Books & Comics/Comics',
+    'manga':                'Books & Comics/Manga',
 }
 _TUNING_DEFAULTS = {
     'confidence_classifier': 40, 'confidence_tv': 60, 'confidence_cartoon': 60,
